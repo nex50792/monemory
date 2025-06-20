@@ -1,32 +1,46 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 
-export function middleware(req: NextRequest) {
-  const basicAuth = req.headers.get('authorization');
+const isPublicRoute = createRouteMatcher(['/sign-in(.*)', '/sign-up(.*)'])
 
-  if (process.env.IS_PRIVATE !== 'true') {
-    return NextResponse.next();
+const mergedMiddleware = clerkMiddleware(async (auth, request) => {
+  if (!isPublicRoute(request)) {
+    await auth.protect();
   }
 
-  if (basicAuth) {
-    const [, base64] = basicAuth.split(' ');
-    const [user, pwd] = atob(base64).split(':');
+  if (process.env.IS_PRIVATE === 'true') {
+    const basicAuth = request.headers.get('authorization');
 
-    if (
-      user === process.env.BASIC_AUTH_USER &&
-      pwd === process.env.BASIC_AUTH_PASS
-    ) {
-      return NextResponse.next();
+    if (basicAuth) {
+      const [, base64] = basicAuth.split(' ');
+      const [user, pwd] = atob(base64).split(':');
+
+      if (
+        user === process.env.BASIC_AUTH_USER &&
+        pwd === process.env.BASIC_AUTH_PASS
+      ) {
+        return NextResponse.next();
+      }
     }
+
+    return new NextResponse('Authentication required', {
+      status: 401,
+      headers: {
+        'WWW-Authenticate': 'Basic realm="Secure Area"',
+      },
+    });
   }
 
-  return new NextResponse('Authentication required', {
-    status: 401,
-    headers: {
-      'WWW-Authenticate': 'Basic realm="Secure Area"',
-    },
-  });
-}
+  return NextResponse.next();
+});
+
+export default mergedMiddleware;
 
 export const config = {
-  matcher: ['/:path*'],
+  matcher: [
+    // Skip Next.js internals and all static files, unless found in search params
+    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
+    // Always run for API routes
+    '/(api|trpc)(.*)',
+  ],
 };
