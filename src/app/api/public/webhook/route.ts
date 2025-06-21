@@ -4,7 +4,6 @@ import { NextRequest } from "next/server";
 import { Webhook } from "svix";
 
 export async function POST(req: NextRequest) {
-  console.log("[Webhook] POST request received");
 
   const payload = await req.json();
   const payloadString = JSON.stringify(payload);
@@ -14,10 +13,7 @@ export async function POST(req: NextRequest) {
   const svixIdTimeStamp = headerPayload.get("svix-timestamp");
   const svixSignature = headerPayload.get("svix-signature");
 
-  console.log("[Webhook] svix headers", { svixId, svixIdTimeStamp, svixSignature });
-
   if (!svixId || !svixIdTimeStamp || !svixSignature) {
-    console.error("[Webhook] Missing svix headers");
     return new Response("Missing svix headers", { status: 400 });
   }
 
@@ -29,7 +25,6 @@ export async function POST(req: NextRequest) {
 
   const webhookSecret = process.env.CLERK_WEBHOOK_SECRET || "";
   if (!webhookSecret) {
-    console.error("[Webhook] Missing webhook secret");
     return new Response("Missing webhook secret", { status: 500 });
   }
 
@@ -38,13 +33,7 @@ export async function POST(req: NextRequest) {
 
   try {
     evt = wh.verify(payloadString, svixHeaders) as Event;
-    console.log("[Webhook] Verification success");
-  } catch (err) {
-    console.error("[Webhook] Verification failed", {
-      error: err,
-      svixHeaders,
-      webhookSecretExists: !!webhookSecret,
-    });
+  } catch {
     return new Response("Invalid signature", { status: 401 });
   }
 
@@ -64,9 +53,8 @@ export async function POST(req: NextRequest) {
           name,
         },
       });
-    } catch (e) {
-      console.error("DB insertion failed:", e);
-      return new Response("DB Error", { status: 500 });
+    } catch {
+      return new Response("DB insertion failed:", { status: 500 });
     }
 
     return new Response("User created", { status: 201 });
@@ -80,8 +68,8 @@ export async function POST(req: NextRequest) {
           deletedAt: new Date(),
         },
       });
-    } catch (e) {
-      console.error("DB deletion failed:", e);
+    } catch {
+      return new Response("DB deletion failed:", { status: 500 });
     }
 
     return new Response("User deleted", { status: 200 });
@@ -96,8 +84,8 @@ export async function POST(req: NextRequest) {
           name,
         },
       });
-    } catch (e) {
-      console.error("DB update failed:", e);
+    } catch {
+      return new Response("DB update failed:", { status: 500 });
     }
 
     return new Response("User updated", { status: 200 });
