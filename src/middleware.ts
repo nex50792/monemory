@@ -1,14 +1,19 @@
-import { clerkMiddleware } from '@clerk/nextjs/server';
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 
-// const isPublicRoute = createRouteMatcher(['/sign-in(.*)', '/sign-up(.*)', '/api/public/webhook'])
+const isPublicRoute = createRouteMatcher(['/sign-in(.*)', '/sign-up(.*)', '/api/public/webhook'])
+const isWebhookRoute = createRouteMatcher(['/api/public/webhook'])
 
 const mergedMiddleware = clerkMiddleware(async (auth, request) => {
-  // if (!isPublicRoute(request)) {
-  //   await auth.protect();
-  // }
+  if (!isPublicRoute(request)) {
+    await auth.protect();
+  }
 
   if (process.env.IS_PRIVATE === 'true') {
+    if (isWebhookRoute(request)) {
+      return NextResponse.next();
+    }
+
     const basicAuth = request.headers.get('authorization');
 
     if (basicAuth) {
