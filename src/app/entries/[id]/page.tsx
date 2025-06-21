@@ -1,12 +1,13 @@
 import { prisma } from "@/lib/prisma";
 
 type Props = {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 };
 
-export default async function EntryDetail({ params }: Props) {
+export default async function EntryDetail({ params }: Props) { 
+  const { id } = await params;
   const entry = await prisma.entry.findUnique({
-    where: { id: params.id },
+    where: { id: id },
   });
 
   if (!entry) {
