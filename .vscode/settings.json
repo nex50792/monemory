@@ -1,4 +1,11 @@
 {
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": true,
+    "source.fixAll": true
+  },
+  "eslint.validate": ["typescript", "javascript", "typescriptreact", "javascriptreact"],
+  "eslint.format.enable": true,
   "deno.enablePaths": [
     "supabase/functions"
   ],

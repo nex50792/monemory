@@ -1,7 +1,7 @@
-import Form from "next/form";
 import { prisma } from '@/lib/prisma';
-import { revalidatePath } from "next/cache";
 import { auth } from "@clerk/nextjs/server";
+import { revalidatePath } from "next/cache";
+import Form from "next/form";
 
 export default function Home() {
   async function createEntry(formData: FormData) {

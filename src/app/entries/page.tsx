@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { prisma } from '@/lib/prisma';
+import Link from "next/link";
 
 export default async function EntryList() {
   const entries = await prisma.entry.findMany({

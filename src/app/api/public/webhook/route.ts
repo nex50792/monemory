@@ -1,7 +1,7 @@
-import { Webhook } from "svix";
+import { prisma } from '@/lib/prisma';
 import { headers } from "next/headers";
 import { NextRequest } from "next/server";
-import { prisma } from '@/lib/prisma'
+import { Webhook } from "svix";
 
 const webhookSecret: string = process.env.NGROK_WEBHOOK_SECRET || "";
 
