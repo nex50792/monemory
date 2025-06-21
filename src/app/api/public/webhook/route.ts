@@ -3,8 +3,6 @@ import { headers } from "next/headers";
 import { NextRequest } from "next/server";
 import { Webhook } from "svix";
 
-const webhookSecret: string = process.env.NGROK_WEBHOOK_SECRET || "";
-
 export async function POST(req: NextRequest) {
   console.log("[Webhook] POST request received");
 
