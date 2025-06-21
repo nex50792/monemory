@@ -24,4 +24,18 @@ model User {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   deletedAt      DateTime?
+
+  Entry Entry[]
+}
+
+model Entry {
+  id          String    @id @default(cuid())
+  user        User      @relation(fields: [userId], references: [id])
+  userId      String
+  title       String?
+  amount      Decimal?  @db.Decimal(10, 2)
+  date        DateTime? @default(now())
+  memo        String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
