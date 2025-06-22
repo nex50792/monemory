@@ -1,7 +1,8 @@
 import { getCurrentUser } from '@/lib/getCurrentUser';
 import { prisma } from '@/lib/prisma';
-import { revalidatePath } from "next/cache";
 import Form from "next/form";
+import Link from 'next/link';
+import { redirect } from 'next/navigation';
 
 export default function Home() {
   async function createEntry(formData: FormData) {
@@ -15,7 +16,7 @@ export default function Home() {
     const date = dateRaw ? new Date(dateRaw) : undefined;
     const memo = formData.get("memo") as string;
 
-    await prisma.entry.create({
+    const newEntry = await prisma.entry.create({
       data: {
         userId: user.id,
         title,
@@ -25,11 +26,16 @@ export default function Home() {
       },
     });
 
-    revalidatePath("/");
+    redirect(`/entries/${newEntry.id}`);
   }
 
   return (
     <div className="max-w-md mx-auto mt-10 p-6 bg-white rounded-lg shadow-md">
+      <div className="mb-2">
+        <Link href="/entries" className="text-blue-600 hover:underline">
+          ← 一覧に戻る
+        </Link>
+      </div>
       <Form action={createEntry} className="space-y-4">
         <div>
           <label htmlFor="title" className="block text-sm font-medium text-gray-700">

@@ -1,5 +1,6 @@
 import { getCurrentUser } from "@/lib/getCurrentUser";
 import { prisma } from "@/lib/prisma";
+import Link from "next/link";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -19,10 +20,15 @@ export default async function EntryDetail({ params }: Props) {
 
   return (
     <div className="max-w-xl mx-auto mt-10 p-6 bg-white rounded-lg shadow-md">
-      <h1 className="text-2xl font-bold mb-2">{entry.title || "(無題)"}</h1>
-      <p className="text-lg mb-1">金額: {entry.amount?.toLocaleString()}円</p>
-      <p className="text-sm text-gray-500 mb-4">日付: {new Date(entry.date ?? "").toLocaleDateString()}</p>
-      <p className="text-gray-800 whitespace-pre-wrap">{entry.memo}</p>
+      <div className="mb-2">
+        <Link href="/entries" className="text-blue-600 hover:underline">
+          ← 一覧に戻る
+        </Link>
+      </div>
+      <h1 className="text-2xl font-bold mb-2 text-gray-700">{entry.title || "(無題)"}</h1>
+      <p className="text-gray-700 mb-2">金額: {entry.amount?.toLocaleString()}円</p>
+      <p className="text-gray-700 mb-2">日付: {new Date(entry.date ?? "").toLocaleDateString()}</p>
+      <p className="text-gray-700 whitespace-pre-wrap">{entry.memo}</p>
     </div>
   );
 }
