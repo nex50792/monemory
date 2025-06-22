@@ -1,3 +1,4 @@
+import { getCurrentUser } from "@/lib/getCurrentUser";
 import { prisma } from "@/lib/prisma";
 
 type Props = {
@@ -6,8 +7,10 @@ type Props = {
 
 export default async function EntryDetail({ params }: Props) { 
   const { id } = await params;
+  const user = await getCurrentUser();
+
   const entry = await prisma.entry.findUnique({
-    where: { id: id },
+    where: { id: id, userId: user.id },
   });
 
   if (!entry) {

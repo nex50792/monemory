@@ -1,8 +1,12 @@
+import { getCurrentUser } from '@/lib/getCurrentUser';
 import { prisma } from '@/lib/prisma';
 import Link from "next/link";
 
 export default async function EntryList() {
+  const user = await getCurrentUser();
+
   const entries = await prisma.entry.findMany({
+    where: { userId: user.id },
     orderBy: { date: "desc" },
   });
 

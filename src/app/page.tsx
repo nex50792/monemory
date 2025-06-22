@@ -1,5 +1,5 @@
+import { getCurrentUser } from '@/lib/getCurrentUser';
 import { prisma } from '@/lib/prisma';
-import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import Form from "next/form";
 
@@ -7,21 +7,7 @@ export default function Home() {
   async function createEntry(formData: FormData) {
     "use server";
 
-    const authRes = await auth();
-
-    if (!authRes.userId) {
-      throw new Error("ログインユーザーが存在しません");
-    }
-
-    const user = await prisma.user.findUnique({
-      where: {
-        clerkUserId: authRes.userId
-      }
-    })
-
-    if (!user) {
-      throw new Error("該当するユーザーが見つかりません");
-    }
+    const user = await getCurrentUser();
 
     const title = formData.get("title") as string;
     const amount = parseFloat(formData.get("amount") as string);
