@@ -3,15 +3,22 @@ import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 
 type Props = {
-  params: Promise<{ id: string }>;
+  params: Promise<{ id: string }>; 
 };
 
-export default async function EntryDetail({ params }: Props) { 
+export default async function EntryDetail({ params }: Props) {
   const { id } = await params;
   const user = await getCurrentUser();
 
   const entry = await prisma.entry.findUnique({
-    where: { id: id, userId: user.id },
+    where: {
+      id: id,
+      userId: user.id,
+    },
+    include: {
+      category: true,
+      tags: true,
+    },
   });
 
   if (!entry) {
@@ -25,9 +32,42 @@ export default async function EntryDetail({ params }: Props) {
           ← 一覧に戻る
         </Link>
       </div>
-      <h1 className="text-2xl font-bold mb-2 text-gray-700">{entry.title || "(無題)"}</h1>
-      <p className="text-gray-700 mb-2">金額: {entry.amount?.toLocaleString()}円</p>
-      <p className="text-gray-700 mb-2">日付: {new Date(entry.date ?? "").toLocaleDateString()}</p>
+
+      <h1 className="text-2xl font-bold mb-2 text-gray-700">
+        {entry.title || "(無題)"}
+      </h1>
+
+      <p className="text-gray-700 mb-2">
+        金額: {entry.amount?.toLocaleString()}円
+      </p>
+
+      <p className="text-gray-700 mb-2">
+        日付: {new Date(entry.date ?? "").toLocaleDateString()}
+      </p>
+
+      {/* カテゴリ */}
+      {entry.category && (
+        <p className="text-gray-700 mb-2">
+          カテゴリ: <span className="font-medium">{entry.category.name}</span>
+        </p>
+      )}
+
+      {/* タグ（複数） */}
+      {entry.tags.length > 0 && (
+        <p className="text-gray-700 mb-2">
+          タグ:{" "}
+          {entry.tags.map((tag) => (
+            <span
+              key={tag.id}
+              className="inline-block bg-gray-200 text-gray-700 text-sm px-2 py-1 rounded mr-1"
+            >
+              {tag.name}
+            </span>
+          ))}
+        </p>
+      )}
+
+      {/* メモ */}
       <p className="text-gray-700 whitespace-pre-wrap">{entry.memo}</p>
     </div>
   );
