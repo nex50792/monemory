@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { createEntry } from './actions';
 
@@ -22,6 +22,7 @@ function SubmitButton() {
 
 export default function Home() {
   const router = useRouter();
+  const dateRef = useRef<HTMLInputElement>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [tags, setTags] = useState<{ id: string; name: string }[]>([]);
@@ -123,12 +124,18 @@ export default function Home() {
           <label htmlFor="date" className="block text-sm font-medium text-gray-700">
             日付
           </label>
-          <input
-            type="date"
-            name="date"
-            id="date"
+          <div
             className="text-black mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
-          />
+            onClick={() => dateRef.current?.showPicker?.() || dateRef.current?.focus()}
+          >
+            <input
+              ref={dateRef}
+              type="date"
+              name="date"
+              id="date"
+              className="text-black w-full bg-transparent outline-none"
+            />
+          </div>
         </div>
 
         {/* カテゴリ */}
