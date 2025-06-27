@@ -29,6 +29,8 @@ export default function Home() {
   const [newCategory, setNewCategory] = useState('');
   const [newTag, setNewTag] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [isAddingTag, setIsAddingTag] = useState(false);
 
   useEffect(() => {
     fetch('/api/categories')
@@ -40,29 +42,41 @@ export default function Home() {
   }, []);
 
   const handleAddCategory = async () => {
-    const res = await fetch('/api/categories', {
-      method: 'POST',
-      body: JSON.stringify({ name: newCategory }),
-      headers: { 'Content-Type': 'application/json' },
-    });
-    if (res.ok) {
-      const newCat = await res.json();
-      setCategories((prev) => [...prev, newCat]);
-      setNewCategory('');
+    if (!newCategory.trim()) return;
+    setIsAddingCategory(true);
+    try {
+      const res = await fetch('/api/categories', {
+        method: 'POST',
+        body: JSON.stringify({ name: newCategory }),
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (res.ok) {
+        const newCat = await res.json();
+        setCategories((prev) => [...prev, newCat]);
+        setNewCategory('');
+      }
+    } finally {
+      setIsAddingCategory(false);
     }
   };
 
   const handleAddTag = async () => {
-    const res = await fetch('/api/tags', {
-      method: 'POST',
-      body: JSON.stringify({ name: newTag }),
-      headers: { 'Content-Type': 'application/json' },
-    });
-    if (res.ok) {
-      const newT = await res.json();
-      setTags((prev) => [...prev, newT]);
-      setSelectedTags((prev) => [...prev, newT.id]);
-      setNewTag('');
+    if (!newTag.trim()) return;
+    setIsAddingTag(true);
+    try {
+      const res = await fetch('/api/tags', {
+        method: 'POST',
+        body: JSON.stringify({ name: newTag }),
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (res.ok) {
+        const newT = await res.json();
+        setTags((prev) => [...prev, newT]);
+        setSelectedTags((prev) => [...prev, newT.id]);
+        setNewTag('');
+      }
+    } finally {
+      setIsAddingTag(false);
     }
   };
 
@@ -161,13 +175,14 @@ export default function Home() {
               value={newCategory}
               onChange={(e) => setNewCategory(e.target.value)}
             />
-            <button
-              type="button"
-              onClick={handleAddCategory}
-              className="px-3 py-2 bg-green-600 text-white rounded-md"
-            >
-              追加
-            </button>
+          <button
+            type="button"
+            onClick={handleAddCategory}
+            className="px-3 py-2 bg-green-600 text-white rounded-md disabled:opacity-50"
+            disabled={isAddingCategory}
+          >
+            {isAddingCategory ? '追加中...' : '追加'}
+          </button>
           </div>
         </div>
 
@@ -198,13 +213,14 @@ export default function Home() {
               value={newTag}
               onChange={(e) => setNewTag(e.target.value)}
             />
-            <button
-              type="button"
-              onClick={handleAddTag}
-              className="px-3 py-2 bg-green-600 text-white rounded-md"
-            >
-              追加
-            </button>
+          <button
+            type="button"
+            onClick={handleAddTag}
+            className="px-3 py-2 bg-green-600 text-white rounded-md disabled:opacity-50"
+            disabled={isAddingTag}
+          >
+            {isAddingTag ? '追加中...' : '追加'}
+          </button>
           </div>
         </div>
 
