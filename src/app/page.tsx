@@ -61,7 +61,7 @@ export default function Home() {
         const data = await res.json();
         setCategoryError(data.error || 'カテゴリの追加に失敗しました。');
       }
-    } catch (e) {
+    } catch {
       setCategoryError('ネットワークエラーが発生しました。');
     } finally {
       setIsAddingCategory(false);
@@ -87,7 +87,7 @@ export default function Home() {
         const data = await res.json();
         setTagError(data.error || 'タグの追加に失敗しました。');
       }
-    } catch (e) {
+    } catch {
       setTagError('ネットワークエラーが発生しました。');
     } finally {
       setIsAddingTag(false);
