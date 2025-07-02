@@ -8,7 +8,6 @@ import { createEntry } from './actions';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
-
   return (
     <button
       type="submit"
@@ -22,25 +21,22 @@ function SubmitButton() {
 
 export default function Home() {
   const router = useRouter();
-  const dateRef = useRef<HTMLInputElement>(null)
+  const dateRef = useRef<HTMLInputElement>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [tags, setTags] = useState<{ id: string; name: string }[]>([]);
   const [newCategory, setNewCategory] = useState('');
   const [newTag, setNewTag] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [formCategory, setFormCategory] = useState('');
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [categoryError, setCategoryError] = useState('');
   const [isAddingTag, setIsAddingTag] = useState(false);
   const [tagError, setTagError] = useState('');
 
   useEffect(() => {
-    fetch('/api/categories')
-      .then(res => res.json())
-      .then(setCategories);
-    fetch('/api/tags')
-      .then(res => res.json())
-      .then(setTags);
+    fetch('/api/categories').then(res => res.json()).then(setCategories);
+    fetch('/api/tags').then(res => res.json()).then(setTags);
   }, []);
 
   const handleAddCategory = async () => {
@@ -92,12 +88,12 @@ export default function Home() {
     } finally {
       setIsAddingTag(false);
     }
-  };  
+  };
 
   const handleSubmit = async (formData: FormData) => {
     setErrorMessage(null);
-
     formData.set("tags", selectedTags.join(","));
+    formData.set("categoryId", formCategory);
 
     const result = await createEntry(formData);
     if (result.success) {
@@ -110,77 +106,67 @@ export default function Home() {
   return (
     <div className="max-w-md mx-auto mt-10 p-6 bg-white rounded-lg shadow-md">
       <div className="mb-2">
-        <Link href="/entries" className="text-blue-600 hover:underline">
-          ← 一覧に戻る
-        </Link>
+        <Link href="/entries" className="text-blue-600 hover:underline">← 一覧に戻る</Link>
       </div>
-      <form onSubmit={(e) => {
-        e.preventDefault();
-        const formData = new FormData(e.currentTarget);
-        handleSubmit(formData);
-      }} className="space-y-4">
-
-        {/* タイトル */}
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          const formData = new FormData(e.currentTarget);
+          handleSubmit(formData);
+        }}
+        className="space-y-4"
+      >
         <div>
-          <label htmlFor="title" className="block text-sm font-medium text-gray-700">
-            タイトル
-          </label>
-          <input
-            type="text"
-            name="title"
-            id="title"
-            className="text-black mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
-          />
+          <label className="block text-sm font-medium text-gray-700">タイトル</label>
+          <input type="text" name="title" className="text-black mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" />
         </div>
 
-        {/* 金額 */}
         <div>
-          <label htmlFor="amount" className="block text-sm font-medium text-gray-700">
-            金額
-          </label>
-          <input
-            type="number"
-            step="0.01"
-            name="amount"
-            id="amount"
-            className="text-black mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
-          />
+          <label className="block text-sm font-medium text-gray-700">金額</label>
+          <input type="number" step="0.01" name="amount" className="text-black mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" />
         </div>
 
-        {/* 日付 */}
         <div>
-          <label htmlFor="date" className="block text-sm font-medium text-gray-700">
-            日付
-          </label>
-          <div
-            className="text-black mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
-            onClick={() => dateRef.current?.showPicker?.() || dateRef.current?.focus()}
-          >
-            <input
-              ref={dateRef}
-              type="date"
-              name="date"
-              id="date"
-              className="text-black w-full bg-transparent outline-none"
-            />
+          <label className="block text-sm font-medium text-gray-700">日付</label>
+          <div className="text-black mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm">
+            <input ref={dateRef} type="date" name="date" className="text-black w-full bg-transparent outline-none" />
           </div>
         </div>
 
-        {/* カテゴリ */}
         <div>
-          <label htmlFor="categoryId" className="block text-sm font-medium text-gray-700">
-            カテゴリ
-          </label>
-          <select
-            name="categoryId"
-            id="categoryId"
-            className="text-black mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
-          >
-            <option value="">-- 選択してください --</option>
-            {categories.map((cat) => (
-              <option key={cat.id} value={cat.id}>{cat.name}</option>
-            ))}
-          </select>
+          <label className="block text-sm font-medium text-gray-700">カテゴリ</label>
+          <div className="flex gap-2 items-center">
+            <select
+              name="categoryId"
+              className="text-black mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
+              value={formCategory}
+              onChange={(e) => setFormCategory(e.target.value)}
+            >
+              <option value="">-- 選択してください --</option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.id}>{cat.name}</option>
+              ))}
+            </select>
+            {formCategory && (
+              <button
+                type="button"
+                className="text-xs text-red-600 hover:underline"
+                onClick={async () => {
+                  const category = categories.find(c => c.id === formCategory);
+                  if (category && confirm(`「${category.name}」を削除しますか？`)) {
+                    const res = await fetch(`/api/categories/${formCategory}`, { method: 'DELETE' });
+                    if (res.ok) {
+                      setCategories((prev) => prev.filter(c => c.id !== formCategory));
+                      setFormCategory('');
+                    } else {
+                      const data = await res.json();
+                      alert(data.error || '削除に失敗しました。');
+                    }
+                  }
+                }}
+              >削除</button>
+            )}
+          </div>
           <div className="flex mt-2 gap-2">
             <input
               type="text"
@@ -189,25 +175,45 @@ export default function Home() {
               value={newCategory}
               onChange={(e) => setNewCategory(e.target.value)}
             />
-          <button
-            type="button"
-            onClick={handleAddCategory}
-            className="px-3 py-2 bg-green-600 text-white rounded-md disabled:opacity-50"
-            disabled={isAddingCategory}
-          >
-            {isAddingCategory ? '追加中...' : '追加'}
-          </button>
+            <button
+              type="button"
+              onClick={handleAddCategory}
+              className="px-3 py-2 bg-green-600 text-white rounded-md disabled:opacity-50"
+              disabled={isAddingCategory}
+            >{isAddingCategory ? '追加中...' : '追加'}</button>
           </div>
-          {categoryError && (
-            <p className="text-red-500 text-sm mt-1">{categoryError}</p>
-          )}
+          {categoryError && <p className="text-red-500 text-sm mt-1">{categoryError}</p>}
         </div>
 
-        {/* タグ（複数選択） */}
         <div>
-          <label htmlFor="tagIds" className="block text-sm font-medium text-gray-700">
-            タグ（複数選択）
-          </label>
+          <label className="block text-sm font-medium text-gray-700">タグ（複数選択）</label>
+          <div className="flex flex-col gap-1">
+            {selectedTags.map(tagId => {
+              const tag = tags.find(t => t.id === tagId);
+              return tag ? (
+                <div key={tag.id} className="flex items-center gap-2">
+                  <span className="text-sm text-black">{tag.name}</span>
+                  <button
+                    type="button"
+                    className="text-xs text-red-500 hover:underline"
+                    onClick={async () => {
+                      if (confirm(`「${tag.name}」を削除しますか？`)) {
+                        const res = await fetch(`/api/tags/${tag.id}`, { method: 'DELETE' });
+                        if (res.ok) {
+                          setTags(prev => prev.filter(t => t.id !== tag.id));
+                          setSelectedTags(prev => prev.filter(id => id !== tag.id));
+                        } else {
+                          const data = await res.json();
+                          alert(data.error || '削除に失敗しました。');
+                        }
+                      }
+                    }}
+                  >削除</button>
+                </div>
+              ) : null;
+            })}
+          </div>
+
           <select
             id="tagIds"
             multiple
@@ -222,6 +228,7 @@ export default function Home() {
               <option key={tag.id} value={tag.id}>{tag.name}</option>
             ))}
           </select>
+
           <div className="flex mt-2 gap-2">
             <input
               type="text"
@@ -230,35 +237,22 @@ export default function Home() {
               value={newTag}
               onChange={(e) => setNewTag(e.target.value)}
             />
-          <button
-            type="button"
-            onClick={handleAddTag}
-            className="px-3 py-2 bg-green-600 text-white rounded-md disabled:opacity-50"
-            disabled={isAddingTag}
-          >
-            {isAddingTag ? '追加中...' : '追加'}
-          </button>
+            <button
+              type="button"
+              onClick={handleAddTag}
+              className="px-3 py-2 bg-green-600 text-white rounded-md disabled:opacity-50"
+              disabled={isAddingTag}
+            >{isAddingTag ? '追加中...' : '追加'}</button>
           </div>
-          {tagError && (
-            <p className="text-red-500 text-sm mt-1">{tagError}</p>
-          )}
+          {tagError && <p className="text-red-500 text-sm mt-1">{tagError}</p>}
         </div>
 
-        {/* メモ */}
         <div>
-          <label htmlFor="memo" className="block text-sm font-medium text-gray-700">
-            メモ
-          </label>
-          <textarea
-            name="memo"
-            id="memo"
-            className="text-black mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
-          />
+          <label className="block text-sm font-medium text-gray-700">メモ</label>
+          <textarea name="memo" className="text-black mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" />
         </div>
 
-        {errorMessage && (
-          <p className="text-red-500 text-sm">{errorMessage}</p>
-        )}
+        {errorMessage && <p className="text-red-500 text-sm">{errorMessage}</p>}
         <SubmitButton />
       </form>
     </div>
