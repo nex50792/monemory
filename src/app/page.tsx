@@ -30,7 +30,9 @@ export default function Home() {
   const [newTag, setNewTag] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [categoryError, setCategoryError] = useState('');
   const [isAddingTag, setIsAddingTag] = useState(false);
+  const [tagError, setTagError] = useState('');
 
   useEffect(() => {
     fetch('/api/categories')
@@ -44,6 +46,7 @@ export default function Home() {
   const handleAddCategory = async () => {
     if (!newCategory.trim()) return;
     setIsAddingCategory(true);
+    setCategoryError('');
     try {
       const res = await fetch('/api/categories', {
         method: 'POST',
@@ -54,7 +57,12 @@ export default function Home() {
         const newCat = await res.json();
         setCategories((prev) => [...prev, newCat]);
         setNewCategory('');
+      } else {
+        const data = await res.json();
+        setCategoryError(data.error || 'カテゴリの追加に失敗しました。');
       }
+    } catch (e) {
+      setCategoryError('ネットワークエラーが発生しました。');
     } finally {
       setIsAddingCategory(false);
     }
@@ -63,6 +71,7 @@ export default function Home() {
   const handleAddTag = async () => {
     if (!newTag.trim()) return;
     setIsAddingTag(true);
+    setTagError('');
     try {
       const res = await fetch('/api/tags', {
         method: 'POST',
@@ -74,11 +83,16 @@ export default function Home() {
         setTags((prev) => [...prev, newT]);
         setSelectedTags((prev) => [...prev, newT.id]);
         setNewTag('');
+      } else {
+        const data = await res.json();
+        setTagError(data.error || 'タグの追加に失敗しました。');
       }
+    } catch (e) {
+      setTagError('ネットワークエラーが発生しました。');
     } finally {
       setIsAddingTag(false);
     }
-  };
+  };  
 
   const handleSubmit = async (formData: FormData) => {
     setErrorMessage(null);
@@ -184,6 +198,9 @@ export default function Home() {
             {isAddingCategory ? '追加中...' : '追加'}
           </button>
           </div>
+          {categoryError && (
+            <p className="text-red-500 text-sm mt-1">{categoryError}</p>
+          )}
         </div>
 
         {/* タグ（複数選択） */}
@@ -222,6 +239,9 @@ export default function Home() {
             {isAddingTag ? '追加中...' : '追加'}
           </button>
           </div>
+          {tagError && (
+            <p className="text-red-500 text-sm mt-1">{tagError}</p>
+          )}
         </div>
 
         {/* メモ */}
