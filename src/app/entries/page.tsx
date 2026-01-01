@@ -86,7 +86,7 @@ export default function EntryListClient() {
         </button>
       </div>
 
-      <h1 className="text-xl font-bold mb-4 text-black">登録一覧</h1>
+      <h1 className="text-xl font-bold mb-4 text-black">記録一覧</h1>
       {error && <p className="text-red-500 mb-4">{error}</p>}
 
       {loading ? (
