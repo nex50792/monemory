@@ -74,8 +74,6 @@ export default function EntryListClient() {
     router.push(`/entries/${id}`);
   };
 
-  if (loading) return <p className="text-center mt-8">読み込み中...</p>;
-
   return (
     <div className="max-w-2xl mx-auto mt-10 p-6 bg-white rounded-lg shadow-md">
       <div className="flex justify-between items-center mb-4">
@@ -89,11 +87,12 @@ export default function EntryListClient() {
       </div>
 
       <h1 className="text-xl font-bold mb-4 text-black">登録一覧</h1>
-
       {error && <p className="text-red-500 mb-4">{error}</p>}
 
-      {entries.length === 0 ? (
-        <p>登録がありません。</p>
+      {loading ? (
+        <p className="text-sm text-gray-500">データを読み込み中です...</p>
+      ) : entries.length === 0 ? (
+        <p className="text-sm text-gray-500">登録がありません。</p>
       ) : (
         <ul className="space-y-4">
           {entries.map((entry) => (

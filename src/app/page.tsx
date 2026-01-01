@@ -105,6 +105,10 @@ export default function Home() {
 
   return (
     <div className="max-w-md mx-auto mt-10 p-6 bg-white rounded-lg shadow-md">
+      <header className="mb-4">
+          <h1 className="text-2xl font-bold text-black">新規記録作成</h1>
+          <p className="mt-2 text-sm text-gray-500">支出や出来事を記録します。カテゴリやタグは任意で設定できます。</p>
+      </header>
       <div className="mb-2">
         <Link href="/entries" className="text-blue-600 hover:underline">← 一覧に戻る</Link>
       </div>
