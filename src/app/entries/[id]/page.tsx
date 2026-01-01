@@ -32,6 +32,12 @@ export default async function EntryDetail({ params }: Props) {
           ← 一覧に戻る
         </Link>
       </div>
+      <Link
+        href={`/entries/${entry.id}/edit`}
+        className="ml-4 text-sm text-indigo-600 hover:underline"
+      >
+        編集
+      </Link>
 
       <h1 className="text-2xl font-bold mb-2 text-gray-700">
         {entry.title || "(無題)"}
