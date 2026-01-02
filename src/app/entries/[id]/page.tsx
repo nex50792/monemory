@@ -1,6 +1,6 @@
+import BackToListButton from '@/components/BackToListButton';
 import { getCurrentUser } from "@/lib/getCurrentUser";
 import { prisma } from "@/lib/prisma";
-import Link from "next/link";
 import EditButtonClient from "./EditButtonClient";
 
 type Props = {
@@ -29,9 +29,7 @@ export default async function EntryDetail({ params }: Props) {
   return (
     <div className="max-w-xl mx-auto mt-10 p-6 bg-white rounded-lg shadow-md">
       <div className="mb-2">
-        <Link href="/entries" className="text-blue-600 hover:underline">
-          ← 一覧に戻る
-        </Link>
+        <BackToListButton>← 一覧に戻る</BackToListButton>
       </div>
       <div className="ml-4">
         {/* Client component handles loading state on click */}

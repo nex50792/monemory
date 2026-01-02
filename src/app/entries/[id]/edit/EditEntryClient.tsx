@@ -1,7 +1,7 @@
 
 'use client';
 
-import Link from 'next/link';
+import BackToListButton from '@/components/BackToListButton';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
@@ -196,7 +196,7 @@ export default function EditEntryClient({ id }: Props) {
   return (
     <div className="max-w-md mx-auto mt-10 p-6 bg-white rounded-lg shadow-md">
       <div className="mb-2">
-        <Link href="/entries" className="text-blue-600 hover:underline">← 一覧に戻る</Link>
+        <BackToListButton>← 一覧に戻る</BackToListButton>
       </div>
       <div className="mb-4">
         <h1 className="text-xl font-bold text-black">記録編集</h1>

@@ -1,6 +1,6 @@
 "use client";
 
-import Link from 'next/link';
+import BackToListButton from '@/components/BackToListButton';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { useFormStatus } from 'react-dom';
@@ -110,7 +110,7 @@ export default function Home() {
           <p className="mt-2 text-sm text-gray-500">支出や出来事を記録します。カテゴリやタグは任意で設定できます。</p>
       </header>
       <div className="mb-2">
-        <Link href="/entries" className="text-blue-600 hover:underline">← 一覧に戻る</Link>
+        <BackToListButton>← 一覧に戻る</BackToListButton>
       </div>
       <form
         onSubmit={(e) => {
