@@ -123,6 +123,25 @@ describe('api/public/webhook', () => {
     expect(res.status).toBe(400)
   })
 
+  it('returns 400 when verify returns undefined', async () => {
+    vi.doMock('svix', () => ({ Webhook: class { constructor() {} verify() { return undefined } } }))
+    const { POST } = await import('@/app/api/public/webhook/route')
+
+    const req = new Request('http://localhost', { method: 'POST', body: JSON.stringify({}) })
+    const res = await POST(req as NextRequest)
+    expect(res.status).toBe(400)
+  })
+
+  it('returns 400 when event data id missing', async () => {
+    const verifyMock = vi.fn().mockReturnValue({ type: 'user.created', data: {} })
+    vi.doMock('svix', () => ({ Webhook: class { constructor() {} verify = verifyMock } }))
+    const { POST } = await import('@/app/api/public/webhook/route')
+
+    const req = new Request('http://localhost', { method: 'POST', body: JSON.stringify({}) })
+    const res = await POST(req as NextRequest)
+    expect(res.status).toBe(400)
+  })
+
   it('returns 400 when headers missing', async () => {
     vi.doMock('next/headers', () => ({ headers: () => new Map() }))
     const { POST } = await import('@/app/api/public/webhook/route')
@@ -130,5 +149,32 @@ describe('api/public/webhook', () => {
     const req = new Request('http://localhost', { method: 'POST', body: JSON.stringify({}) })
     const res = await POST(req as NextRequest)
     expect(res.status).toBe(400)
+  })
+
+  it('returns 400 when verify returns undefined', async () => {
+    vi.doMock('svix', () => ({ Webhook: class { constructor() {} verify() { return undefined } } }))
+    const { POST } = await import('@/app/api/public/webhook/route')
+
+    const req = new Request('http://localhost', { method: 'POST', body: JSON.stringify({}) })
+    const res = await POST(req as NextRequest)
+    expect(res.status).toBe(400)
+  })
+
+  it('user.created with missing name/email passes nulls to prisma.create', async () => {
+    const verifyMock = vi.fn().mockReturnValue({ type: 'user.created', data: { id: 'c2' } })
+    vi.doMock('next/headers', () => ({ headers: () => new Map([['svix-id', '1'], ['svix-timestamp', 't'], ['svix-signature', 's']]) }))
+    vi.doMock('svix', () => ({ Webhook: class { constructor() {} verify = verifyMock } }))
+
+    const { POST } = await import('@/app/api/public/webhook/route')
+
+    const createMock = vi.fn().mockResolvedValue({ id: 'u2' })
+    const prismaInstance = { user: { create: createMock } } as any
+    ;(prismaInstance.user.create as any).mockResolvedValue({ id: 'u2' })
+    vi.spyOn(prismaMod, 'prisma', 'get').mockReturnValue(prismaInstance)
+
+    const req = new Request('http://localhost', { method: 'POST', body: JSON.stringify({}) })
+    const res = await POST(req as NextRequest)
+    expect(res.status).toBe(201)
+    expect(createMock).toHaveBeenCalledWith({ data: { clerkUserId: 'c2', email: null, name: null } })
   })
 })
