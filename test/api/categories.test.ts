@@ -1,12 +1,23 @@
-import { GET, POST } from '@/app/api/categories/route'
-import * as getCurrentUserMod from '@/lib/getCurrentUser'
-import * as prismaMod from '@/lib/prisma'
-import type { User } from '@prisma/client'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { fetchHandler } from '../utils/fetchHandler'
+import * as getCurrentUserMod from '@/lib/getCurrentUser';
+import type { User } from '@prisma/client';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { fetchHandler } from '../utils/fetchHandler';
+
+type TestCategoryDelegate = Partial<{
+  findMany: ReturnType<typeof vi.fn>
+  findUnique: ReturnType<typeof vi.fn>
+  create: ReturnType<typeof vi.fn>
+}>;
+
+type TestPrisma = Partial<{
+  category: TestCategoryDelegate
+}>;
+
+function mockPrismaModule(prismaInstance: TestPrisma) {
+  vi.doMock('@/lib/prisma', () => ({ prisma: prismaInstance }))
+}
 
 vi.mock('@/lib/getCurrentUser')
-vi.mock('@/lib/prisma')
 
 const makeMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'user1',
@@ -23,14 +34,16 @@ const makeMockUser = (overrides: Partial<User> = {}): User => ({
 describe('api/categories', () => {
   beforeEach(() => {
     vi.resetAllMocks()
+    vi.resetModules()
   })
 
   it('GET returns categories for current user', async () => {
     const mockUser = makeMockUser({ id: 'user1' })
     vi.spyOn(getCurrentUserMod, 'getCurrentUser').mockResolvedValue(mockUser)
-    const prismaInstance = { category: { findMany: vi.fn() } } as any
-    ;(prismaInstance.category.findMany as any).mockResolvedValue([{ id: 'c1', name: 'Food', userId: 'user1' }])
-    vi.spyOn(prismaMod, 'prisma', 'get').mockReturnValue(prismaInstance)
+    const findManyMock = vi.fn().mockResolvedValue([{ id: 'c1', name: 'Food', userId: 'user1' }])
+    const prismaInstance: TestPrisma = { category: { findMany: findManyMock } }
+    mockPrismaModule(prismaInstance)
+    const { GET } = await import('@/app/api/categories/route')
 
     const { res, json } = await fetchHandler(GET)
     expect(res.status).toBe(200)
@@ -41,10 +54,11 @@ describe('api/categories', () => {
     const mockUser = makeMockUser({ id: 'user1' })
     vi.spyOn(getCurrentUserMod, 'getCurrentUser').mockResolvedValue(mockUser)
 
-    const prismaInstance = { category: { findUnique: vi.fn(), create: vi.fn() } } as any
-    ;(prismaInstance.category.findUnique as any).mockResolvedValue(null)
-    ;(prismaInstance.category.create as any).mockResolvedValue({ id: 'c2', name: 'Travel', userId: 'user1' })
-    vi.spyOn(prismaMod, 'prisma', 'get').mockReturnValue(prismaInstance)
+    const findUniqueMock = vi.fn().mockResolvedValue(null)
+    const createMock = vi.fn().mockResolvedValue({ id: 'c2', name: 'Travel', userId: 'user1' })
+    const prismaInstance: TestPrisma = { category: { findUnique: findUniqueMock, create: createMock } }
+    mockPrismaModule(prismaInstance)
+    const { POST } = await import('@/app/api/categories/route')
 
     const { res, json } = await fetchHandler((req) => POST(req), 'POST', { name: 'Travel' })
     expect(res.status).toBe(200)
@@ -54,6 +68,7 @@ describe('api/categories', () => {
   it('POST returns 400 for empty name', async () => {
     const mockUser = makeMockUser({ id: 'user1' })
     vi.spyOn(getCurrentUserMod, 'getCurrentUser').mockResolvedValue(mockUser)
+    const { POST } = await import('@/app/api/categories/route')
 
     const { res } = await fetchHandler((req) => POST(req), 'POST', { name: '' })
     expect(res.status).toBe(400)
@@ -63,9 +78,10 @@ describe('api/categories', () => {
     const mockUser = makeMockUser({ id: 'user1' })
     vi.spyOn(getCurrentUserMod, 'getCurrentUser').mockResolvedValue(mockUser)
 
-    const prismaInstance = { category: { findUnique: vi.fn() } } as any
-    ;(prismaInstance.category.findUnique as any).mockResolvedValue({ id: 'existing' })
-    vi.spyOn(prismaMod, 'prisma', 'get').mockReturnValue(prismaInstance)
+    const findUniqueMock = vi.fn().mockResolvedValue({ id: 'existing' })
+    const prismaInstance: TestPrisma = { category: { findUnique: findUniqueMock } }
+    mockPrismaModule(prismaInstance)
+    const { POST } = await import('@/app/api/categories/route')
 
     const { res, json } = await fetchHandler((req) => POST(req), 'POST', { name: 'Food' })
     expect(res.status).toBe(409)

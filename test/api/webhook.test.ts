@@ -1,14 +1,23 @@
-import * as prismaMod from '@/lib/prisma'
-import type { NextRequest } from 'next/server'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { NextRequest } from 'next/server';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@/lib/prisma')
+type TestUserDelegate = Partial<{
+  create: ReturnType<typeof vi.fn>
+  updateMany: ReturnType<typeof vi.fn>
+}>;
+
+type PartialPrisma = Partial<{
+  user: TestUserDelegate
+}>;
 
 vi.mock('next/headers', () => ({
   headers: () => new Map([['svix-id', '1'], ['svix-timestamp', 't'], ['svix-signature', 's']]),
 }))
 
 describe('api/public/webhook', () => {
+  function mockPrismaModule(prismaInstance: PartialPrisma) {
+    vi.doMock('@/lib/prisma', () => ({ prisma: prismaInstance }))
+  }
   beforeEach(() => {
     vi.resetAllMocks()
     vi.resetModules()
@@ -17,13 +26,11 @@ describe('api/public/webhook', () => {
 
   it('returns 201 on user.created', async () => {
     const verifyMock = vi.fn().mockReturnValue({ type: 'user.created', data: { id: 'c1', email_addresses: [{ email_address: 'a@b' }], first_name: 'F', last_name: 'L' } })
+    const createMock = vi.fn().mockResolvedValue({ id: 'u1' })
+    const prismaInstance: PartialPrisma = { user: { create: createMock } }
+    mockPrismaModule(prismaInstance)
     vi.doMock('svix', () => ({ Webhook: class { constructor() {} verify = verifyMock } }))
-
     const { POST } = await import('@/app/api/public/webhook/route')
-
-    const prismaInstance = { user: { create: vi.fn() } } as any
-    ;(prismaInstance.user.create as any).mockResolvedValue({ id: 'u1' })
-    vi.spyOn(prismaMod, 'prisma', 'get').mockReturnValue(prismaInstance)
 
     const req = new Request('http://localhost', { method: 'POST', body: JSON.stringify({}) })
     const res = await POST(req as NextRequest)
@@ -41,12 +48,11 @@ describe('api/public/webhook', () => {
 
   it('returns 500 when prisma create fails', async () => {
     const verifyMock = vi.fn().mockReturnValue({ type: 'user.created', data: { id: 'c1', email_addresses: [{ email_address: 'a@b' }], first_name: 'F', last_name: 'L' } })
+    const createMock = vi.fn().mockRejectedValue(new Error('db fail'))
+    const prismaInstance: PartialPrisma = { user: { create: createMock } }
+    mockPrismaModule(prismaInstance)
     vi.doMock('svix', () => ({ Webhook: class { constructor() {} verify = verifyMock } }))
     const { POST } = await import('@/app/api/public/webhook/route')
-
-    const prismaInstance = { user: { create: vi.fn() } } as any
-    ;(prismaInstance.user.create as any).mockRejectedValue(new Error('db fail'))
-    vi.spyOn(prismaMod, 'prisma', 'get').mockReturnValue(prismaInstance)
 
     const req = new Request('http://localhost', { method: 'POST', body: JSON.stringify({}) })
     const res = await POST(req as NextRequest)
@@ -63,12 +69,11 @@ describe('api/public/webhook', () => {
   })
 
   it('returns 200 on user.deleted', async () => {
+    const updateManyMock = vi.fn().mockResolvedValue({})
+    const prismaInstance: PartialPrisma = { user: { updateMany: updateManyMock } }
+    mockPrismaModule(prismaInstance)
     vi.doMock('svix', () => ({ Webhook: class { constructor() {} verify() { return { type: 'user.deleted', data: { id: 'c1' } } } } }))
     const { POST } = await import('@/app/api/public/webhook/route')
-
-    const prismaInstance = { user: { updateMany: vi.fn() } } as any
-    ;(prismaInstance.user.updateMany as any).mockResolvedValue({})
-    vi.spyOn(prismaMod, 'prisma', 'get').mockReturnValue(prismaInstance)
 
     const req = new Request('http://localhost', { method: 'POST', body: JSON.stringify({}) })
     const res = await POST(req as NextRequest)
@@ -76,12 +81,11 @@ describe('api/public/webhook', () => {
   })
 
   it('returns 500 when prisma delete fails', async () => {
+    const updateManyMock = vi.fn().mockRejectedValue(new Error('db fail'))
+    const prismaInstance: PartialPrisma = { user: { updateMany: updateManyMock } }
+    mockPrismaModule(prismaInstance)
     vi.doMock('svix', () => ({ Webhook: class { constructor() {} verify() { return { type: 'user.deleted', data: { id: 'c1' } } } } }))
     const { POST } = await import('@/app/api/public/webhook/route')
-
-    const prismaInstance = { user: { updateMany: vi.fn() } } as any
-    ;(prismaInstance.user.updateMany as any).mockRejectedValue(new Error('db fail'))
-    vi.spyOn(prismaMod, 'prisma', 'get').mockReturnValue(prismaInstance)
 
     const req = new Request('http://localhost', { method: 'POST', body: JSON.stringify({}) })
     const res = await POST(req as NextRequest)
@@ -89,12 +93,11 @@ describe('api/public/webhook', () => {
   })
 
   it('returns 200 on user.updated', async () => {
+    const updateManyMock = vi.fn().mockResolvedValue({})
+    const prismaInstance: PartialPrisma = { user: { updateMany: updateManyMock } }
+    mockPrismaModule(prismaInstance)
     vi.doMock('svix', () => ({ Webhook: class { constructor() {} verify() { return { type: 'user.updated', data: { id: 'c1', email_addresses: [{ email_address: 'a@b' }], first_name: 'F', last_name: 'L' } } } } } ))
     const { POST } = await import('@/app/api/public/webhook/route')
-
-    const prismaInstance = { user: { updateMany: vi.fn() } } as any
-    ;(prismaInstance.user.updateMany as any).mockResolvedValue({})
-    vi.spyOn(prismaMod, 'prisma', 'get').mockReturnValue(prismaInstance)
 
     const req = new Request('http://localhost', { method: 'POST', body: JSON.stringify({}) })
     const res = await POST(req as NextRequest)
@@ -102,12 +105,11 @@ describe('api/public/webhook', () => {
   })
 
   it('returns 500 when prisma update fails for user.updated', async () => {
+    const updateManyMock = vi.fn().mockRejectedValue(new Error('db fail'))
+    const prismaInstance: PartialPrisma = { user: { updateMany: updateManyMock } }
+    mockPrismaModule(prismaInstance)
     vi.doMock('svix', () => ({ Webhook: class { constructor() {} verify() { return { type: 'user.updated', data: { id: 'c1', email_addresses: [{ email_address: 'a@b' }], first_name: 'F', last_name: 'L' } } } } } ))
     const { POST } = await import('@/app/api/public/webhook/route')
-
-    const prismaInstance = { user: { updateMany: vi.fn() } } as any
-    ;(prismaInstance.user.updateMany as any).mockRejectedValue(new Error('db fail'))
-    vi.spyOn(prismaMod, 'prisma', 'get').mockReturnValue(prismaInstance)
 
     const req = new Request('http://localhost', { method: 'POST', body: JSON.stringify({}) })
     const res = await POST(req as NextRequest)
@@ -162,15 +164,12 @@ describe('api/public/webhook', () => {
 
   it('user.created with missing name/email passes nulls to prisma.create', async () => {
     const verifyMock = vi.fn().mockReturnValue({ type: 'user.created', data: { id: 'c2' } })
+    const createMock = vi.fn().mockResolvedValue({ id: 'u2' })
+    const prismaInstance: PartialPrisma = { user: { create: createMock } }
+    mockPrismaModule(prismaInstance)
     vi.doMock('next/headers', () => ({ headers: () => new Map([['svix-id', '1'], ['svix-timestamp', 't'], ['svix-signature', 's']]) }))
     vi.doMock('svix', () => ({ Webhook: class { constructor() {} verify = verifyMock } }))
-
     const { POST } = await import('@/app/api/public/webhook/route')
-
-    const createMock = vi.fn().mockResolvedValue({ id: 'u2' })
-    const prismaInstance = { user: { create: createMock } } as any
-    ;(prismaInstance.user.create as any).mockResolvedValue({ id: 'u2' })
-    vi.spyOn(prismaMod, 'prisma', 'get').mockReturnValue(prismaInstance)
 
     const req = new Request('http://localhost', { method: 'POST', body: JSON.stringify({}) })
     const res = await POST(req as NextRequest)
