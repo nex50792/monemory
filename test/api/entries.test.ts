@@ -2,9 +2,9 @@ import { GET } from '@/app/api/entries/route'
 import * as getCurrentUserMod from '@/lib/getCurrentUser'
 import * as prismaMod from '@/lib/prisma'
 import type { User } from '@prisma/client'
-import { PrismaClient } from '@prisma/client'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { fetchHandler } from '../utils/fetchHandler'
+import type { MockPrisma } from './utils/mockPrisma'
 
 vi.mock('@/lib/getCurrentUser')
 vi.mock('@/lib/prisma')
@@ -30,9 +30,8 @@ describe('api/entries', () => {
     const mockUser = makeMockUser({ id: 'user1' })
     const getCurrentUserSpy = vi.spyOn(getCurrentUserMod, 'getCurrentUser') as ReturnType<typeof vi.spyOn>
     getCurrentUserSpy.mockResolvedValue(mockUser)
-    const prismaInstance = new PrismaClient()
-    const findManyMock = vi.fn().mockResolvedValue([{ id: 'e1', title: 'Lunch', userId: 'user1' }])
-    vi.spyOn(prismaInstance.entry, 'findMany').mockImplementation(findManyMock)
+    const prismaInstance: MockPrisma = { entry: { findMany: vi.fn() } }
+    ;(prismaInstance.entry!.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([{ id: 'e1', title: 'Lunch', userId: 'user1' }])
     vi.spyOn(prismaMod, 'prisma', 'get').mockReturnValue(prismaInstance)
 
     const { res, json } = await fetchHandler(GET)
@@ -51,8 +50,8 @@ describe('api/entries', () => {
     const mockUser = makeMockUser({ id: 'user1' })
     const getCurrentUserSpy = vi.spyOn(getCurrentUserMod, 'getCurrentUser') as ReturnType<typeof vi.spyOn>
     getCurrentUserSpy.mockResolvedValue(mockUser)
-    const prismaInstance = new PrismaClient()
-    vi.spyOn(prismaInstance.entry, 'findMany').mockImplementation(vi.fn().mockResolvedValue([]))
+    const prismaInstance: MockPrisma = { entry: { findMany: vi.fn() } }
+    ;(prismaInstance.entry!.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([])
     vi.spyOn(prismaMod, 'prisma', 'get').mockReturnValue(prismaInstance)
 
     const { res, json } = await fetchHandler(GET)

@@ -51,6 +51,13 @@ export default function EditEntryClient({ id }: Props) {
   const [categoryError, setCategoryError] = useState('');
   const [tagError, setTagError] = useState('');
 
+  const formatDateForInput = (dateStr: string | null | undefined): string => {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    if (Number.isNaN(d.getTime())) return '';
+    return d.toISOString().slice(0, 10);
+  };
+
   useEffect(() => {
     if (!id) return;
     const fetchData = async () => {
@@ -74,7 +81,7 @@ export default function EditEntryClient({ id }: Props) {
           id: entryData.id,
           title: entryData.title,
           amount: entryData.amount,
-          date: entryData.date,
+          date: formatDateForInput(entryData.date),
           memo: entryData.memo,
           categoryId: entryData.categoryId ?? null,
           tags: entryData.tags ?? [],
@@ -94,6 +101,12 @@ export default function EditEntryClient({ id }: Props) {
     };
     fetchData();
   }, [id]);
+
+  useEffect(() => {
+    if (entry && dateRef.current) {
+      dateRef.current.value = entry.date ?? '';
+    }
+  }, [entry]);
 
   const handleAddCategory = async () => {
     if (!newCategory.trim()) return;

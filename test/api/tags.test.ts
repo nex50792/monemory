@@ -2,7 +2,6 @@ import { GET, POST } from '@/app/api/tags/route'
 import * as getCurrentUserMod from '@/lib/getCurrentUser'
 import * as prismaMod from '@/lib/prisma'
 import type { User } from '@prisma/client'
-import { PrismaClient } from '@prisma/client'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { fetchHandler } from '../utils/fetchHandler'
 
@@ -29,9 +28,8 @@ describe('api/tags', () => {
   it('GET returns tags for current user', async () => {
     const mockUser = makeMockUser({ id: 'user1' })
     vi.spyOn(getCurrentUserMod, 'getCurrentUser').mockResolvedValue(mockUser)
-    const prismaInstance = new PrismaClient()
-    const findManyMock = vi.fn().mockResolvedValue([{ id: 't1', name: 'tagtag', userId: 'user1' }])
-    vi.spyOn(prismaInstance.tag, 'findMany').mockImplementation(findManyMock)
+    const prismaInstance = { tag: { findMany: vi.fn() } } as any
+    ;(prismaInstance.tag.findMany as any).mockResolvedValue([{ id: 't1', name: 'tagtag', userId: 'user1' }])
     vi.spyOn(prismaMod, 'prisma', 'get').mockReturnValue(prismaInstance)
 
     const { res, json } = await fetchHandler(GET)
@@ -43,11 +41,9 @@ describe('api/tags', () => {
     const mockUser = makeMockUser({ id: 'user1' })
     vi.spyOn(getCurrentUserMod, 'getCurrentUser').mockResolvedValue(mockUser)
 
-    const prismaInstance = new PrismaClient()
-    const createMock = vi.fn().mockResolvedValue({ id: 't2', name: 'Sweet', userId: 'user1' })
-    const findUniqueMock = vi.fn().mockResolvedValue(null)
-    vi.spyOn(prismaInstance.tag, 'findUnique').mockImplementation(findUniqueMock)
-    vi.spyOn(prismaInstance.tag, 'create').mockImplementation(createMock)
+    const prismaInstance = { tag: { findUnique: vi.fn(), create: vi.fn() } } as any
+    ;(prismaInstance.tag.findUnique as any).mockResolvedValue(null)
+    ;(prismaInstance.tag.create as any).mockResolvedValue({ id: 't2', name: 'Sweet', userId: 'user1' })
     vi.spyOn(prismaMod, 'prisma', 'get').mockReturnValue(prismaInstance)
 
     const { res, json } = await fetchHandler((req) => POST(req), 'POST', { name: 'Sweet' })
@@ -67,9 +63,8 @@ describe('api/tags', () => {
     const mockUser = makeMockUser({ id: 'user1' })
     vi.spyOn(getCurrentUserMod, 'getCurrentUser').mockResolvedValue(mockUser)
 
-    const prismaInstance = new PrismaClient()
-    const findUniqueMock = vi.fn().mockResolvedValue({ id: 'existing' })
-    vi.spyOn(prismaInstance.tag, 'findUnique').mockImplementation(findUniqueMock)
+    const prismaInstance = { tag: { findUnique: vi.fn() } } as any
+    ;(prismaInstance.tag.findUnique as any).mockResolvedValue({ id: 'existing' })
     vi.spyOn(prismaMod, 'prisma', 'get').mockReturnValue(prismaInstance)
 
     const { res, json } = await fetchHandler((req) => POST(req), 'POST', { name: 'tagtag' })

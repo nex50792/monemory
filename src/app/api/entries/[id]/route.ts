@@ -12,6 +12,9 @@ export async function PUT(
 
   const entry = await prisma.entry.findUnique({
     where: { id: entryId, userId: user.id },
+    include: {
+      tags: true,
+    },
   });
 
   if (!entry) {
@@ -27,6 +30,46 @@ export async function PUT(
     ? null
     : data.amount;
 
+  let categoryId: string | null = null;
+  const existingCategoryId = data.categoryId as string | undefined;
+  const newCategoryName = data.newCategory as string | undefined;
+  if (newCategoryName && newCategoryName.trim() !== '') {
+    const category = await prisma.category.upsert({
+      where: { name_userId: { name: newCategoryName, userId: user.id } },
+      update: {},
+      create: { name: newCategoryName, userId: user.id },
+    });
+    categoryId = category.id;
+  } else if (existingCategoryId) {
+    categoryId = existingCategoryId;
+  }
+
+  const rawSelectedTagIds = data.tags as string | string[] | undefined;
+  const selectedTagIds = typeof rawSelectedTagIds === 'string'
+    ? rawSelectedTagIds.split(',').map((t) => t.trim()).filter(Boolean)
+    : Array.isArray(rawSelectedTagIds)
+      ? rawSelectedTagIds.map((t) => String(t).trim()).filter(Boolean)
+      : [];
+
+  const newTagsRaw: string[] = Array.isArray(data.newTags) ? data.newTags : (data.newTags ? [data.newTags] : []);
+  const newTagNames: string[] = newTagsRaw
+    .flatMap((v: string) => (typeof v === 'string' ? v.split(',') : []))
+    .map((t: string) => t.trim())
+    .filter(Boolean) as string[];
+
+  const createdTags = await Promise.all(
+    newTagNames.map(async (name: string) => {
+      const existing = await prisma.tag.findFirst({ where: { name, userId: user.id } });
+      if (existing) return existing;
+      return prisma.tag.create({ data: { name, userId: user.id } });
+    })
+  );
+
+  const allTagIds = [
+    ...selectedTagIds,
+    ...createdTags.map((t) => t.id),
+  ];
+
   const updated = await prisma.entry.update({
     where: { id: entryId },
     data: {
@@ -34,7 +77,10 @@ export async function PUT(
       amount: normalizedAmount,
       date: normalizedDate,
       memo: data.memo ?? null,
+      categoryId,
+      tags: { set: allTagIds.map((id) => ({ id })) },
     },
+    include: { tags: true, category: true },
   });
 
   return NextResponse.json(updated);
@@ -74,6 +120,9 @@ export async function GET(
 
   const entry = await prisma.entry.findUnique({
     where: { id: entryId, userId: user.id },
+    include: {
+      tags: true,
+    },
   });
 
   if (!entry) {

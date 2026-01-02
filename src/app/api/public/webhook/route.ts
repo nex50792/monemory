@@ -36,11 +36,17 @@ export async function POST(req: NextRequest) {
   } catch {
     return new Response("Invalid signature", { status: 401 });
   }
+  if (!evt || !evt.type) {
+    return new Response("Invalid event", { status: 400 });
+  }
 
   const eventType: EventType = evt.type;
 
   // === Clerk ユーザー情報 ===
-  const { id: clerkId, email_addresses, first_name, last_name } = evt.data;
+  const { id: clerkId, email_addresses, first_name, last_name } = evt.data || {};
+  if (!clerkId) {
+    return new Response("Invalid event data", { status: 400 });
+  }
   const email = email_addresses?.[0]?.email_address || null;
   const name = `${first_name ?? ""}${last_name ?? ""}`.trim() || null;
 
