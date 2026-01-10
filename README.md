@@ -17,5 +17,6 @@ npm run dev
 ngrok http 3000
 ```
 
-4. ClerkのWebhookをngrokのURLに変更
+4. ClerkのWebhookをngrokのURLに変更し有効化
 例: https://abcd-1234.ngrok-free.app/api/public/webhook
+Enable Endpointにして、Subscribed eventsにuser.created, user.deleted, user.updatedを入れる
