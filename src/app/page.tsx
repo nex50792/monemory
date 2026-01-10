@@ -1,6 +1,7 @@
 "use client";
 
 import BackToListButton from '@/components/BackToListButton';
+import GlobalMessage from '@/components/GlobalMessage';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { useFormStatus } from 'react-dom';
@@ -23,6 +24,7 @@ export default function Home() {
   const router = useRouter();
   const dateRef = useRef<HTMLInputElement>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [tags, setTags] = useState<{ id: string; name: string }[]>([]);
   const [newCategory, setNewCategory] = useState('');
@@ -105,6 +107,7 @@ export default function Home() {
 
   return (
     <div className="max-w-md mx-auto mt-10 p-6 bg-white rounded-lg shadow-md">
+      <GlobalMessage message={toast} onClose={() => setToast(null)} />
       <header className="mb-4">
           <h1 className="text-2xl font-bold text-black">新規記録作成</h1>
           <p className="mt-2 text-sm text-gray-500">支出や出来事を記録します。カテゴリやタグは任意で設定できます。</p>
@@ -164,7 +167,7 @@ export default function Home() {
                       setFormCategory('');
                     } else {
                       const data = await res.json();
-                      alert(data.error || '削除に失敗しました。');
+                      setToast(data.error || '削除に失敗しました。');
                     }
                   }
                 }}
@@ -208,7 +211,7 @@ export default function Home() {
                           setSelectedTags(prev => prev.filter(id => id !== tag.id));
                         } else {
                           const data = await res.json();
-                          alert(data.error || '削除に失敗しました。');
+                          setToast(data.error || '削除に失敗しました。');
                         }
                       }
                     }}
