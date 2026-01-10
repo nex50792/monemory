@@ -41,7 +41,7 @@ export default async function EntryDetail({ params }: Props) {
       </h1>
 
       <p className="text-gray-700 mb-2">
-        金額: {entry.amount?.toLocaleString()}円
+        金額: {entry.amount == null ? '—' : `${entry.amount.toLocaleString()}円`}
       </p>
 
       <p className="text-gray-700 mb-2">

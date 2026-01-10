@@ -104,8 +104,8 @@ export default function EntryListClient() {
                   className="text-left text-blue-600 hover:underline disabled:opacity-50"
                 >
                   {navigatingToId === entry.id
-                    ? `${entry.title || '(無題)'} - ${entry.amount?.toLocaleString()}円 - 遷移中...`
-                    : `${entry.title || '(無題)'} - ${entry.amount?.toLocaleString()}円`}
+                    ? `${entry.title || '(無題)'} - ${entry.amount == null ? '—' : `${entry.amount.toLocaleString()}円`} - 遷移中...`
+                    : `${entry.title || '(無題)'} - ${entry.amount == null ? '—' : `${entry.amount.toLocaleString()}円`}`}
                 </button>
                 <p className="text-sm text-gray-500">
                   {new Date(entry.date ?? '').toLocaleDateString()}
