@@ -79,7 +79,7 @@ export async function createEntry(formData: FormData) {
 
     return { success: true, entryId: newEntry.id };
   } catch (error) {
-    console.error('エントリ作成中にエラー:', error);
+    console.error('記録作成中にエラー:', error);
     return { success: false, message: "作成に失敗しました。" };
   }
 }

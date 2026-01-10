@@ -19,7 +19,7 @@ export async function DELETE(
   }
 
   if (tag.entries.length > 0) {
-    return NextResponse.json({ error: 'このタグはエントリに使用されているため削除できません。' }, { status: 400 });
+    return NextResponse.json({ error: 'このタグは記録に使用されているため削除できません。' }, { status: 400 });
   }
 
   await prisma.tag.delete({ where: { id } });

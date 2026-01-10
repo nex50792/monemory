@@ -19,7 +19,7 @@ export async function DELETE(
   }
 
   if (category.entries.length > 0) {
-    return NextResponse.json({ error: 'このカテゴリはエントリに使用されているため削除できません。' }, { status: 400 });
+    return NextResponse.json({ error: 'このカテゴリは記録に使用されているため削除できません。' }, { status: 400 });
   }
 
   await prisma.category.delete({ where: { id } });

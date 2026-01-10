@@ -99,7 +99,7 @@ export async function DELETE(
 
   if (!entry || entry.userId !== user.id) {
     return NextResponse.json(
-      { error: 'エントリが存在しないか、権限がありません。' },
+      { error: '記録が存在しないか、権限がありません。' },
       { status: 404 }
     );
   }
