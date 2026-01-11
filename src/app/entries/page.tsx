@@ -12,7 +12,17 @@ type Entry = {
 
 export default function EntryListClient() {
   const [entries, setEntries] = useState<Entry[]>([]);
-  const [filters, setFilters] = useState({
+  type Filters = {
+    q: string;
+    startDate: string;
+    endDate: string;
+    minAmount: string;
+    maxAmount: string;
+    sort: string;
+  };
+  type UIFilters = Filters & { categoryId: string; tagIds: string[] };
+
+  const [filters, setFilters] = useState<Filters>({
     q: '',
     startDate: '',
     endDate: '',
@@ -20,6 +30,11 @@ export default function EntryListClient() {
     maxAmount: '',
     sort: 'date_desc',
   });
+
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+  const [tags, setTags] = useState<{ id: string; name: string }[]>([]);
+
+  const [uiFilters, setUiFilters] = useState<UIFilters>({ ...filters, categoryId: '', tagIds: [] });
   const [showFilters, setShowFilters] = useState(false);
   const [loading, setLoading] = useState(true);
   const [deleteLoadingId, setDeleteLoadingId] = useState<string | null>(null);
@@ -30,18 +45,21 @@ export default function EntryListClient() {
 
   const router = useRouter();
 
-  const fetchEntries = useCallback(async (useFilters?: typeof filters) => {
+  const fetchEntries = useCallback(async (useFilters?: Filters, useUiFilters?: UIFilters) => {
     setLoading(true);
     try {
       const base = '/api/entries';
       const params = new URLSearchParams();
-      const f = useFilters ?? { q: '', startDate: '', endDate: '', minAmount: '', maxAmount: '', sort: 'date_desc' };
+      const f: Filters = useFilters ?? filters ?? { q: '', startDate: '', endDate: '', minAmount: '', maxAmount: '', sort: 'date_desc' };
+      const u: UIFilters = useUiFilters ?? uiFilters ?? { ...f, categoryId: '', tagIds: [] };
       if (f.q) params.set('q', f.q);
       if (f.startDate) params.set('startDate', f.startDate);
       if (f.endDate) params.set('endDate', f.endDate);
       if (f.minAmount) params.set('minAmount', f.minAmount);
       if (f.maxAmount) params.set('maxAmount', f.maxAmount);
       if (f.sort) params.set('sort', f.sort);
+      if (u.categoryId) params.set('categoryId', u.categoryId);
+      if (u.tagIds && u.tagIds.length > 0) params.set('tagIds', u.tagIds.join(','));
 
       const url = params.toString() ? `${base}?${params.toString()}` : base;
 
@@ -62,8 +80,26 @@ export default function EntryListClient() {
   }, [setEntries, setError, setLoading]);
 
   useEffect(() => {
-    fetchEntries();
+    fetchEntries(filters, uiFilters);
   }, [fetchEntries]);
+
+  useEffect(() => {
+    if (!showFilters) return;
+    let mounted = true;
+    (async () => {
+      try {
+        const [cRes, tRes] = await Promise.all([fetch('/api/categories'), fetch('/api/tags')]);
+        if (!cRes.ok || !tRes.ok) return;
+        const [cJson, tJson] = await Promise.all([cRes.json(), tRes.json()]);
+        if (!mounted) return;
+        setCategories(cJson);
+        setTags(tJson);
+      } catch (e) {
+        console.error('フィルター用データ取得エラー', e);
+      }
+    })();
+    return () => { mounted = false };
+  }, [showFilters]);
 
   useEffect(() => {
     const onDocClick = (e: MouseEvent) => {
@@ -85,7 +121,7 @@ export default function EntryListClient() {
         const data = await res.json();
         throw new Error(data.error || '削除に失敗しました');
       }
-      await fetchEntries();
+      await fetchEntries(filters, uiFilters);
     } catch (e: unknown) {
       if (e instanceof Error) {
         setError(e.message);
@@ -134,13 +170,13 @@ export default function EntryListClient() {
       </div>
 
       {showFilters && (
-        <div className="mb-4">
-          <div className="flex flex-wrap gap-2 items-end">
+          <div className="mb-4">
+          <div className="flex flex-wrap gap-4 items-end">
           <div>
             <label className="text-sm text-gray-600">検索</label>
             <input
-              value={filters.q}
-              onChange={(e) => setFilters({ ...filters, q: e.target.value })}
+              value={uiFilters.q}
+              onChange={(e) => setUiFilters({ ...uiFilters, q: e.target.value })}
               className="ml-2 px-2 py-1 border rounded"
               placeholder="タイトルで検索"
             />
@@ -149,8 +185,8 @@ export default function EntryListClient() {
             <label className="text-sm text-gray-600">期間（開始）</label>
             <input
               type="date"
-              value={filters.startDate}
-              onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
+              value={uiFilters.startDate}
+              onChange={(e) => setUiFilters({ ...uiFilters, startDate: e.target.value })}
               className="ml-2 px-2 py-1 border rounded"
             />
           </div>
@@ -158,8 +194,8 @@ export default function EntryListClient() {
             <label className="text-sm text-gray-600">期間（終了）</label>
             <input
               type="date"
-              value={filters.endDate}
-              onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
+              value={uiFilters.endDate}
+              onChange={(e) => setUiFilters({ ...uiFilters, endDate: e.target.value })}
               className="ml-2 px-2 py-1 border rounded"
             />
           </div>
@@ -167,8 +203,8 @@ export default function EntryListClient() {
             <label className="text-sm text-gray-600">金額（最小）</label>
             <input
               type="number"
-              value={filters.minAmount}
-              onChange={(e) => setFilters({ ...filters, minAmount: e.target.value })}
+              value={uiFilters.minAmount}
+              onChange={(e) => setUiFilters({ ...uiFilters, minAmount: e.target.value })}
               className="ml-2 px-2 py-1 border rounded w-28"
             />
           </div>
@@ -176,16 +212,16 @@ export default function EntryListClient() {
             <label className="text-sm text-gray-600">金額（最大）</label>
             <input
               type="number"
-              value={filters.maxAmount}
-              onChange={(e) => setFilters({ ...filters, maxAmount: e.target.value })}
+              value={uiFilters.maxAmount}
+              onChange={(e) => setUiFilters({ ...uiFilters, maxAmount: e.target.value })}
               className="ml-2 px-2 py-1 border rounded w-28"
             />
           </div>
           <div>
             <label className="text-sm text-gray-600">並べ替え</label>
             <select
-              value={filters.sort}
-              onChange={(e) => setFilters({ ...filters, sort: e.target.value })}
+              value={uiFilters.sort}
+              onChange={(e) => setUiFilters({ ...uiFilters, sort: e.target.value })}
               className="ml-2 px-2 py-1 border rounded"
             >
               <option value="date_desc">日付: 新しい順</option>
@@ -196,9 +232,89 @@ export default function EntryListClient() {
               <option value="title_desc">タイトル: 降順</option>
             </select>
           </div>
+          <div className="min-w-[220px]">
+            <label className="text-sm text-gray-600">カテゴリ（1つ選択）</label>
+            <div className="ml-2 flex gap-2 flex-wrap" role="radiogroup" aria-label="カテゴリ">
+              <button
+                onClick={() => setUiFilters({ ...uiFilters, categoryId: '' })}
+                role="radio"
+                aria-checked={!uiFilters.categoryId}
+                tabIndex={0}
+                className={`px-3 py-1 border rounded-md focus:outline-none transition ${!uiFilters.categoryId ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white'}`}
+              >
+                全て
+              </button>
+              {categories.map((c) => {
+                const selected = uiFilters.categoryId === c.id;
+                return (
+                  <button
+                    key={c.id}
+                    onClick={() => setUiFilters({ ...uiFilters, categoryId: selected ? '' : c.id })}
+                    role="radio"
+                    aria-checked={selected}
+                    tabIndex={0}
+                    className={`px-3 py-1 border rounded-md focus:outline-none transition ${selected ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white'}`}
+                  >
+                    {c.name}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+          <div className="min-w-[220px]">
+            <label className="text-sm text-gray-600">タグ（複数選択可）</label>
+            <div className="ml-2 flex gap-2 flex-wrap" role="group" aria-label="タグ">
+              {tags.map((t) => {
+                const selected = uiFilters.tagIds.includes(t.id);
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => {
+                      const current: string[] = uiFilters.tagIds || [];
+                      if (current.includes(t.id)) {
+                        setUiFilters({ ...uiFilters, tagIds: current.filter((id) => id !== t.id) });
+                      } else {
+                        setUiFilters({ ...uiFilters, tagIds: [...current, t.id] });
+                      }
+                    }}
+                    aria-pressed={selected}
+                    className={`px-3 py-1 border rounded-md focus:outline-none transition ${selected ? 'bg-indigo-100 text-indigo-800 border-indigo-200' : 'bg-white'}`}
+                  >
+                    <span>{t.name}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
           <div className="ml-2">
-            <button onClick={() => fetchEntries(filters)} className="px-3 py-1 bg-indigo-600 text-white rounded mr-2">適用</button>
-            <button onClick={() => { setFilters({ q: '', startDate: '', endDate: '', minAmount: '', maxAmount: '', sort: 'date_desc' }); fetchEntries(); }} className="px-3 py-1 bg-gray-200 rounded">クリア</button>
+            <button
+              onClick={() => {
+                const newFilters: Filters = {
+                  q: uiFilters.q,
+                  startDate: uiFilters.startDate,
+                  endDate: uiFilters.endDate,
+                  minAmount: uiFilters.minAmount,
+                  maxAmount: uiFilters.maxAmount,
+                  sort: uiFilters.sort,
+                };
+                setFilters(newFilters);
+                void fetchEntries(newFilters, uiFilters);
+              }}
+              className="px-3 py-1 bg-indigo-600 text-white rounded mr-2"
+            >
+              適用
+            </button>
+            <button
+              onClick={() => {
+                const resetFilters: Filters = { q: '', startDate: '', endDate: '', minAmount: '', maxAmount: '', sort: 'date_desc' };
+                setFilters(resetFilters);
+                setUiFilters({ q: '', startDate: '', endDate: '', minAmount: '', maxAmount: '', sort: 'date_desc', categoryId: '', tagIds: [] });
+                void fetchEntries(resetFilters, { q: '', startDate: '', endDate: '', minAmount: '', maxAmount: '', sort: 'date_desc', categoryId: '', tagIds: [] });
+              }}
+              className="px-3 py-1 bg-gray-200 rounded"
+            >
+              クリア
+            </button>
           </div>
           </div>
         </div>

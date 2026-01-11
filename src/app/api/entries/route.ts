@@ -20,6 +20,8 @@ export async function GET(req: Request) {
   const endDateRaw = params.get('endDate') ?? undefined;
   const minAmountRaw = params.get('minAmount') ?? undefined;
   const maxAmountRaw = params.get('maxAmount') ?? undefined;
+  const categoryId = params.get('categoryId') ?? undefined;
+  const tagIdsRaw = params.get('tagIds') ?? undefined;
   const sort = params.get('sort') ?? 'date_desc';
 
   const where: Prisma.EntryWhereInput = { userId: user.id };
@@ -58,6 +60,18 @@ export async function GET(req: Request) {
     if (!Number.isNaN(max)) {
       const existingAmountFilter = (where.amount as NumberFilter) ?? {};
       where.amount = { ...existingAmountFilter, lte: max };
+    }
+  }
+
+  if (categoryId) {
+    where.categoryId = categoryId;
+  }
+
+  if (tagIdsRaw) {
+    const tagIds = tagIdsRaw.split(',').filter(Boolean);
+    if (tagIds.length > 0) {
+      const tagFilter: Prisma.TagListRelationFilter = { some: { id: { in: tagIds } } };
+      where.tags = tagFilter;
     }
   }
 

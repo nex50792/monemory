@@ -155,4 +155,55 @@ describe('api/entries', () => {
     expect(calledWith.orderBy).toBeDefined()
     expect(calledWith.orderBy).toEqual({ amount: { sort: 'asc', nulls: 'first' } })
   })
+
+  it('GET applies categoryId filter', async () => {
+    const mockUser = makeMockUser({ id: 'user1' })
+    const getCurrentUserSpy = vi.spyOn(getCurrentUserMod, 'getCurrentUser') as ReturnType<typeof vi.spyOn>
+    getCurrentUserSpy.mockResolvedValue(mockUser)
+
+    const findManyMock = vi.fn().mockResolvedValue([{ id: 'e4', title: 'ByCategory', userId: 'user1' }])
+    const prismaInstance: TestPrisma = { entry: { findMany: findManyMock } }
+    mockPrismaModule(prismaInstance)
+
+    const { GET } = await import('@/app/api/entries/route')
+
+    const req = new Request('http://localhost/?categoryId=cat1')
+    const res = await GET(req)
+    const text = await res.text()
+    const json = JSON.parse(text)
+
+    expect(res.status).toBe(200)
+    expect(json).toEqual([{ id: 'e4', title: 'ByCategory', userId: 'user1' }])
+
+    expect(findManyMock).toHaveBeenCalled()
+    const calledWith = findManyMock.mock.calls[0][0]
+    expect(calledWith.where).toBeDefined()
+    expect(calledWith.where.categoryId).toBe('cat1')
+  })
+
+  it('GET applies tagIds filter (comma separated)', async () => {
+    const mockUser = makeMockUser({ id: 'user1' })
+    const getCurrentUserSpy = vi.spyOn(getCurrentUserMod, 'getCurrentUser') as ReturnType<typeof vi.spyOn>
+    getCurrentUserSpy.mockResolvedValue(mockUser)
+
+    const findManyMock = vi.fn().mockResolvedValue([{ id: 'e5', title: 'ByTags', userId: 'user1' }])
+    const prismaInstance: TestPrisma = { entry: { findMany: findManyMock } }
+    mockPrismaModule(prismaInstance)
+
+    const { GET } = await import('@/app/api/entries/route')
+
+    const req = new Request('http://localhost/?tagIds=tag1,tag2')
+    const res = await GET(req)
+    const text = await res.text()
+    const json = JSON.parse(text)
+
+    expect(res.status).toBe(200)
+    expect(json).toEqual([{ id: 'e5', title: 'ByTags', userId: 'user1' }])
+
+    expect(findManyMock).toHaveBeenCalled()
+    const calledWith = findManyMock.mock.calls[0][0]
+    expect(calledWith.where).toBeDefined()
+    expect(calledWith.where.tags).toBeDefined()
+    expect(calledWith.where.tags.some.id.in).toEqual(['tag1', 'tag2'])
+  })
 })
