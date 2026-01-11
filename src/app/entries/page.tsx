@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 type Entry = {
   id: string;
@@ -12,6 +12,14 @@ type Entry = {
 
 export default function EntryListClient() {
   const [entries, setEntries] = useState<Entry[]>([]);
+  const [filters, setFilters] = useState({
+    q: '',
+    startDate: '',
+    endDate: '',
+    minAmount: '',
+    maxAmount: '',
+  });
+  const [showFilters, setShowFilters] = useState(false);
   const [loading, setLoading] = useState(true);
   const [deleteLoadingId, setDeleteLoadingId] = useState<string | null>(null);
   const [navigatingToId, setNavigatingToId] = useState<string | null>(null);
@@ -21,10 +29,21 @@ export default function EntryListClient() {
 
   const router = useRouter();
 
-  const fetchEntries = async () => {
+  const fetchEntries = useCallback(async (useFilters?: typeof filters) => {
     setLoading(true);
     try {
-      const res = await fetch('/api/entries');
+      const base = '/api/entries';
+      const params = new URLSearchParams();
+      const f = useFilters ?? { q: '', startDate: '', endDate: '', minAmount: '', maxAmount: '' };
+      if (f.q) params.set('q', f.q);
+      if (f.startDate) params.set('startDate', f.startDate);
+      if (f.endDate) params.set('endDate', f.endDate);
+      if (f.minAmount) params.set('minAmount', f.minAmount);
+      if (f.maxAmount) params.set('maxAmount', f.maxAmount);
+
+      const url = params.toString() ? `${base}?${params.toString()}` : base;
+
+      const res = await fetch(url);
       if (!res.ok) throw new Error('一覧取得に失敗しました');
       const data = await res.json();
       setEntries(data);
@@ -38,11 +57,11 @@ export default function EntryListClient() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [setEntries, setError, setLoading]);
 
   useEffect(() => {
     fetchEntries();
-  }, []);
+  }, [fetchEntries]);
 
   useEffect(() => {
     const onDocClick = (e: MouseEvent) => {
@@ -98,7 +117,75 @@ export default function EntryListClient() {
         </button>
       </div>
 
-      <h1 className="text-xl font-bold mb-4 text-black">記録一覧</h1>
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-xl font-bold text-black">記録一覧</h1>
+        <button
+          onClick={() => setShowFilters((s) => !s)}
+          aria-pressed={showFilters}
+          className="px-2 py-1 bg-gray-100 rounded hover:bg-gray-200"
+          title="フィルター"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <path d="M3 5a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-.293.707L12 13.414V17a1 1 0 01-1.447.894L7 16v-2.586L3.293 7.707A1 1 0 013 7V5z" />
+          </svg>
+        </button>
+      </div>
+
+      {showFilters && (
+        <div className="mb-4">
+          <div className="flex flex-wrap gap-2 items-end">
+          <div>
+            <label className="text-sm text-gray-600">検索</label>
+            <input
+              value={filters.q}
+              onChange={(e) => setFilters({ ...filters, q: e.target.value })}
+              className="ml-2 px-2 py-1 border rounded"
+              placeholder="タイトルで検索"
+            />
+          </div>
+          <div>
+            <label className="text-sm text-gray-600">期間（開始）</label>
+            <input
+              type="date"
+              value={filters.startDate}
+              onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
+              className="ml-2 px-2 py-1 border rounded"
+            />
+          </div>
+          <div>
+            <label className="text-sm text-gray-600">期間（終了）</label>
+            <input
+              type="date"
+              value={filters.endDate}
+              onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
+              className="ml-2 px-2 py-1 border rounded"
+            />
+          </div>
+          <div>
+            <label className="text-sm text-gray-600">金額（最小）</label>
+            <input
+              type="number"
+              value={filters.minAmount}
+              onChange={(e) => setFilters({ ...filters, minAmount: e.target.value })}
+              className="ml-2 px-2 py-1 border rounded w-28"
+            />
+          </div>
+          <div>
+            <label className="text-sm text-gray-600">金額（最大）</label>
+            <input
+              type="number"
+              value={filters.maxAmount}
+              onChange={(e) => setFilters({ ...filters, maxAmount: e.target.value })}
+              className="ml-2 px-2 py-1 border rounded w-28"
+            />
+          </div>
+          <div className="ml-2">
+            <button onClick={() => fetchEntries(filters)} className="px-3 py-1 bg-indigo-600 text-white rounded mr-2">適用</button>
+            <button onClick={() => { setFilters({ q: '', startDate: '', endDate: '', minAmount: '', maxAmount: '' }); fetchEntries(); }} className="px-3 py-1 bg-gray-200 rounded">クリア</button>
+          </div>
+          </div>
+        </div>
+      )}
       {error && <p className="text-red-500 mb-4">{error}</p>}
 
       {loading ? (
