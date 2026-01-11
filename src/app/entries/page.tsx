@@ -224,7 +224,7 @@ export default function EntryListClient() {
                     : `${entry.title || '(無題)'} - ${entry.amount == null ? '—' : `${entry.amount.toLocaleString()}円`}`}
                 </button>
                 <p className="text-sm text-gray-500">
-                  {new Date(entry.date ?? '').toLocaleDateString()}
+                  {entry.date ? new Date(entry.date).toLocaleDateString() : '—'}
                 </p>
               </div>
 

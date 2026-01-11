@@ -46,7 +46,7 @@ export default async function EntryDetail({ params }: Props) {
       </p>
 
       <p className="text-gray-700 mb-2">
-        日付: {new Date(entry.date ?? "").toLocaleDateString()}
+        日付: {entry.date ? new Date(entry.date).toLocaleDateString() : '—'}
       </p>
 
       {/* カテゴリ */}
