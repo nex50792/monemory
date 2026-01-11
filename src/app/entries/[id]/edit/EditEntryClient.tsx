@@ -2,6 +2,8 @@
 'use client';
 
 import BackToListButton from '@/components/BackToListButton';
+import ConfirmModal from '@/components/ConfirmModal';
+import GlobalMessage from '@/components/GlobalMessage';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
@@ -46,6 +48,10 @@ export default function EditEntryClient({ id }: Props) {
   const [categoriesToDelete, setCategoriesToDelete] = useState<string[]>([]);
   const [deleteModeTags, setDeleteModeTags] = useState(false);
   const [tagsToDelete, setTagsToDelete] = useState<string[]>([]);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmMessage, setConfirmMessage] = useState('');
+  const [onConfirmAction, setOnConfirmAction] = useState<(() => Promise<void> | void) | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
   const [newCategory, setNewCategory] = useState('');
   const [newTag, setNewTag] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -215,6 +221,8 @@ export default function EditEntryClient({ id }: Props) {
       <div className="mb-2">
         <BackToListButton>← 一覧に戻る</BackToListButton>
       </div>
+      <GlobalMessage message={toast} onClose={() => setToast(null)} />
+      <ConfirmModal open={confirmOpen} message={confirmMessage} onConfirm={async () => { if (onConfirmAction) await onConfirmAction(); setConfirmOpen(false); }} onCancel={() => setConfirmOpen(false)} />
       <div className="mb-4">
         <h1 className="text-xl font-bold text-black">記録編集</h1>
       </div>
@@ -312,22 +320,36 @@ export default function EditEntryClient({ id }: Props) {
                 {deleteModeCategories && categoriesToDelete.length > 0 && (
                   <div className="mt-2 flex items-center gap-2">
                     <button
-                      type="button"
-                      className="px-3 py-1 bg-red-600 text-white rounded"
-                      onClick={async () => {
-                        if (!confirm(`選択したカテゴリ(${categoriesToDelete.length})を削除しますか？`)) return;
-                        const ids = [...categoriesToDelete];
-                        const results = await Promise.all(ids.map(id => fetch(`/api/categories/${id}`, { method: 'DELETE' })));
-                        const okIds: string[] = [];
-                        results.forEach((r, i) => { if (r.ok) okIds.push(ids[i]); });
-                        if (okIds.length > 0) {
-                          setCategories(prev => prev.filter(c => !okIds.includes(c.id)));
-                          if (okIds.includes(formCategory)) setFormCategory('');
-                        }
-                        setCategoriesToDelete([]);
-                        setDeleteModeCategories(false);
-                      }}
-                    >選択したカテゴリを削除 ({categoriesToDelete.length})</button>
+                          type="button"
+                          className="px-3 py-1 bg-red-600 text-white rounded"
+                          onClick={() => {
+                            setConfirmMessage(`選択したカテゴリ(${categoriesToDelete.length})を削除しますか？`);
+                            setOnConfirmAction(() => async () => {
+                              const ids = [...categoriesToDelete];
+                              const results = await Promise.all(ids.map(id => fetch(`/api/categories/${id}`, { method: 'DELETE' })));
+                              const okIds: string[] = [];
+                              for (let i = 0; i < results.length; i++) {
+                                const r = results[i];
+                                if (r.ok) okIds.push(ids[i]);
+                                else {
+                                  try {
+                                    const data = await r.json();
+                                    setToast(data.error || '削除に失敗しました。');
+                                  } catch {
+                                    setToast('削除に失敗しました。');
+                                  }
+                                }
+                              }
+                              if (okIds.length > 0) {
+                                setCategories(prev => prev.filter(c => !okIds.includes(c.id)));
+                                if (okIds.includes(formCategory)) setFormCategory('');
+                              }
+                              setCategoriesToDelete([]);
+                              setDeleteModeCategories(false);
+                            });
+                            setConfirmOpen(true);
+                          }}
+                        >選択したカテゴリを削除 ({categoriesToDelete.length})</button>
                     <button type="button" className="px-3 py-1 bg-gray-200 rounded" onClick={() => { setDeleteModeCategories(false); setCategoriesToDelete([]); }}>キャンセル</button>
                   </div>
                 )}
@@ -365,7 +387,6 @@ export default function EditEntryClient({ id }: Props) {
                 </div>
               </div>
               <label className="block text-sm font-medium text-gray-700 sr-only">タグ（複数選択）</label>
-              {/* selected-tags inline delete list removed — use delete-mode and tag chips */}
 
               <div className="mt-1 flex flex-wrap gap-2">
                 {tags.map((tag) => {
@@ -390,24 +411,38 @@ export default function EditEntryClient({ id }: Props) {
                   )
                 })}
               </div>
-              {deleteModeTags && tagsToDelete.length > 0 && (
+                  {deleteModeTags && tagsToDelete.length > 0 && (
                 <div className="mt-2 flex items-center gap-2">
                   <button
                     type="button"
                     className="px-3 py-1 bg-red-600 text-white rounded"
-                    onClick={async () => {
-                      if (!confirm(`選択したタグ(${tagsToDelete.length})を削除しますか？`)) return;
-                      const ids = [...tagsToDelete];
-                      const results = await Promise.all(ids.map(id => fetch(`/api/tags/${id}`, { method: 'DELETE' })));
-                      const okIds: string[] = [];
-                      results.forEach((r, i) => { if (r.ok) okIds.push(ids[i]); });
-                      if (okIds.length > 0) {
-                        setTags(prev => prev.filter(t => !okIds.includes(t.id)));
-                        setSelectedTags(prev => prev.filter(id => !okIds.includes(id)));
-                      }
-                      setTagsToDelete([]);
-                      setDeleteModeTags(false);
-                    }}
+                        onClick={() => {
+                          setConfirmMessage(`選択したタグ(${tagsToDelete.length})を削除しますか？`);
+                          setOnConfirmAction(() => async () => {
+                            const ids = [...tagsToDelete];
+                            const results = await Promise.all(ids.map(id => fetch(`/api/tags/${id}`, { method: 'DELETE' })));
+                            const okIds: string[] = [];
+                            for (let i = 0; i < results.length; i++) {
+                              const r = results[i];
+                              if (r.ok) okIds.push(ids[i]);
+                              else {
+                                try {
+                                  const data = await r.json();
+                                  setToast(data.error || '削除に失敗しました。');
+                                } catch {
+                                  setToast('削除に失敗しました。');
+                                }
+                              }
+                            }
+                            if (okIds.length > 0) {
+                              setTags(prev => prev.filter(t => !okIds.includes(t.id)));
+                              setSelectedTags(prev => prev.filter(id => !okIds.includes(id)));
+                            }
+                            setTagsToDelete([]);
+                            setDeleteModeTags(false);
+                          });
+                          setConfirmOpen(true);
+                        }}
                   >選択したタグを削除 ({tagsToDelete.length})</button>
                   <button type="button" className="px-3 py-1 bg-gray-200 rounded" onClick={() => { setDeleteModeTags(false); setTagsToDelete([]); }}>キャンセル</button>
                 </div>

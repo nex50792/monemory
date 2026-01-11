@@ -1,15 +1,17 @@
 "use client"
 
+import ConfirmModal from '@/components/ConfirmModal'
+import GlobalMessage from '@/components/GlobalMessage'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
 export default function DeleteButtonClient({ id }: { id: string }) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const [openConfirm, setOpenConfirm] = useState(false)
+  const [toast, setToast] = useState<string | null>(null)
 
-  const handleDelete = async (e: React.MouseEvent) => {
-    e.preventDefault()
-    if (!confirm('本当に削除しますか？')) return
+  const handleDelete = async () => {
     setLoading(true)
     try {
       const res = await fetch(`/api/entries/${id}`, { method: 'DELETE' })
@@ -20,15 +22,19 @@ export default function DeleteButtonClient({ id }: { id: string }) {
       router.push('/entries')
     } catch (err) {
       console.error('削除エラー', err)
-      alert((err as Error)?.message || '削除に失敗しました')
+      setToast((err as Error)?.message || '削除に失敗しました')
     } finally {
       setLoading(false)
+      setOpenConfirm(false)
     }
   }
 
   return (
+    <>
+    <GlobalMessage message={toast} onClose={() => setToast(null)} />
+    <ConfirmModal open={openConfirm} message="本当に削除しますか？" onConfirm={handleDelete} onCancel={() => setOpenConfirm(false)} />
     <button
-      onClick={handleDelete}
+      onClick={() => setOpenConfirm(true)}
       className={`inline-flex items-center gap-2 px-3 py-1 rounded-md text-sm shadow bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed`}
       disabled={loading}
       aria-busy={loading}
@@ -45,5 +51,6 @@ export default function DeleteButtonClient({ id }: { id: string }) {
       )}
       {loading ? '削除中...' : '削除'}
     </button>
+    </>
   )
 }

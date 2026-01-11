@@ -1,5 +1,7 @@
 'use client';
 
+import ConfirmModal from '@/components/ConfirmModal';
+import GlobalMessage from '@/components/GlobalMessage';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -42,6 +44,10 @@ export default function EntryListClient() {
   const [isNavigatingNew, setIsNavigatingNew] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmMessage, setConfirmMessage] = useState('');
+  const [onConfirmAction, setOnConfirmAction] = useState<(() => Promise<void> | void) | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
 
   const router = useRouter();
 
@@ -113,24 +119,27 @@ export default function EntryListClient() {
   }, []);
 
   const handleDelete = async (id: string) => {
-    if (!confirm('本当に削除しますか？')) return;
-    setDeleteLoadingId(id);
-    try {
-      const res = await fetch(`/api/entries/${id}`, { method: 'DELETE' });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || '削除に失敗しました');
+    setConfirmMessage('本当に削除しますか？');
+    setOnConfirmAction(() => async () => {
+      setDeleteLoadingId(id);
+      try {
+        const res = await fetch(`/api/entries/${id}`, { method: 'DELETE' });
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || '削除に失敗しました');
+        }
+        await fetchEntries(filters, uiFilters);
+      } catch (e: unknown) {
+        if (e instanceof Error) {
+          setError(e.message);
+        } else {
+          setError('不明なエラーが発生しました');
+        }
+      } finally {
+        setDeleteLoadingId(null);
       }
-      await fetchEntries(filters, uiFilters);
-    } catch (e: unknown) {
-      if (e instanceof Error) {
-        setError(e.message);
-      } else {
-        setError('不明なエラーが発生しました');
-      }
-    } finally {
-      setDeleteLoadingId(null);
-    }
+    });
+    setConfirmOpen(true);
   };
 
   const handleNavigateToNew = () => {
@@ -145,6 +154,8 @@ export default function EntryListClient() {
 
   return (
     <div className="max-w-2xl mx-auto mt-10 p-6 bg-white rounded-lg shadow-md">
+      <GlobalMessage message={toast ?? error} onClose={() => { setToast(null); setError(null); }} />
+      <ConfirmModal open={confirmOpen} message={confirmMessage} onConfirm={async () => { if (onConfirmAction) await onConfirmAction(); setConfirmOpen(false); }} onCancel={() => setConfirmOpen(false)} />
       <div className="flex justify-between items-center mb-4">
         <button
           onClick={handleNavigateToNew}
