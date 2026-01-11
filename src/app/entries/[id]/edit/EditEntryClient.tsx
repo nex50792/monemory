@@ -42,6 +42,10 @@ export default function EditEntryClient({ id }: Props) {
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
+  const [deleteModeCategories, setDeleteModeCategories] = useState(false);
+  const [categoriesToDelete, setCategoriesToDelete] = useState<string[]>([]);
+  const [deleteModeTags, setDeleteModeTags] = useState(false);
+  const [tagsToDelete, setTagsToDelete] = useState<string[]>([]);
   const [newCategory, setNewCategory] = useState('');
   const [newTag, setNewTag] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -257,36 +261,76 @@ export default function EditEntryClient({ id }: Props) {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700">カテゴリ</label>
-              <div className="flex gap-2 items-center">
-                <select
-                  name="categoryId"
-                  className="text-black mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
-                  value={formCategory}
-                  onChange={(e) => setFormCategory(e.target.value)}
-                >
-                  <option value="">-- 選択してください --</option>
-                  {categories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>{cat.name}</option>
-                  ))}
-                </select>
-                {formCategory && (
+              <div className="flex items-center justify-between">
+                <label className="block text-sm font-medium text-gray-700">カテゴリ</label>
+                <div>
                   <button
                     type="button"
-                    className="text-xs text-red-600 hover:underline"
-                    onClick={async () => {
-                      const category = categories.find(c => c.id === formCategory);
-                      if (category && confirm(`「${category.name}」を削除しますか？`)) {
-                        const res = await fetch(`/api/categories/${formCategory}`, { method: 'DELETE' });
-                        if (res.ok) {
-                          setCategories((prev) => prev.filter(c => c.id !== formCategory));
-                          setFormCategory('');
-                        }
-                      }
-                    }}
-                  >削除</button>
-                )}
+                    title="削除モード"
+                    aria-pressed={deleteModeCategories}
+                    onClick={() => { setDeleteModeCategories((s) => !s); setCategoriesToDelete([]); }}
+                    className={`ml-2 px-2 py-1 rounded ${deleteModeCategories ? 'bg-red-100 text-red-800' : 'bg-gray-100'}`}
+                  >
+                    🗑️
+                  </button>
+                </div>
               </div>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (deleteModeCategories) {
+                    } else {
+                      setFormCategory('');
+                    }
+                  }}
+                  className={`px-3 py-1 border rounded-md focus:outline-none ${!formCategory ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white'}`}
+                >
+                  全て
+                </button>
+                {categories.map((cat) => {
+                  const selected = formCategory === cat.id;
+                  const marked = categoriesToDelete.includes(cat.id);
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => {
+                        if (deleteModeCategories) {
+                          setCategoriesToDelete(prev => prev.includes(cat.id) ? prev.filter(id => id !== cat.id) : [...prev, cat.id]);
+                        } else {
+                          setFormCategory(selected ? '' : cat.id);
+                        }
+                      }}
+                      className={`px-3 py-1 border rounded-md focus:outline-none ${deleteModeCategories ? (marked ? 'bg-red-100 text-red-800 border-red-200' : 'bg-white') : (selected ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white')}`}
+                    >
+                      {cat.name}
+                    </button>
+                  )
+                })}
+              </div>
+                {deleteModeCategories && categoriesToDelete.length > 0 && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <button
+                      type="button"
+                      className="px-3 py-1 bg-red-600 text-white rounded"
+                      onClick={async () => {
+                        if (!confirm(`選択したカテゴリ(${categoriesToDelete.length})を削除しますか？`)) return;
+                        const ids = [...categoriesToDelete];
+                        const results = await Promise.all(ids.map(id => fetch(`/api/categories/${id}`, { method: 'DELETE' })));
+                        const okIds: string[] = [];
+                        results.forEach((r, i) => { if (r.ok) okIds.push(ids[i]); });
+                        if (okIds.length > 0) {
+                          setCategories(prev => prev.filter(c => !okIds.includes(c.id)));
+                          if (okIds.includes(formCategory)) setFormCategory('');
+                        }
+                        setCategoriesToDelete([]);
+                        setDeleteModeCategories(false);
+                      }}
+                    >選択したカテゴリを削除 ({categoriesToDelete.length})</button>
+                    <button type="button" className="px-3 py-1 bg-gray-200 rounded" onClick={() => { setDeleteModeCategories(false); setCategoriesToDelete([]); }}>キャンセル</button>
+                  </div>
+                )}
               <div className="flex mt-2 gap-2">
                 <input
                   type="text"
@@ -306,48 +350,68 @@ export default function EditEntryClient({ id }: Props) {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700">タグ（複数選択）</label>
-              <div className="flex flex-col gap-1">
-                {selectedTags.map(tagId => {
-                  const tag = tags.find(t => t.id === tagId);
-                  return tag ? (
-                    <div key={tag.id} className="flex items-center gap-2">
-                      <span className="text-sm text-black">{tag.name}</span>
-                      <button
-                        type="button"
-                        className="text-xs text-red-500 hover:underline"
-                        onClick={async () => {
-                          if (confirm(`「${tag.name}」を削除しますか？`)) {
-                            const res = await fetch(`/api/tags/${tag.id}`, { method: 'DELETE' });
-                            if (res.ok) {
-                              setTags(prev => prev.filter(t => t.id !== tag.id));
-                              setSelectedTags(prev => prev.filter(id => id !== tag.id));
-                            } else {
-                              const data = await res.json();
-                              alert(data.error || '削除に失敗しました。');
-                            }
-                          }
-                        }}
-                      >削除</button>
-                    </div>
-                  ) : null;
+              <div className="flex items-center justify-between">
+                <label className="block text-sm font-medium text-gray-700">タグ（複数選択）</label>
+                <div>
+                  <button
+                    type="button"
+                    title="削除モード"
+                    aria-pressed={deleteModeTags}
+                    onClick={() => { setDeleteModeTags((s) => !s); setTagsToDelete([]); }}
+                    className={`ml-2 px-2 py-1 rounded ${deleteModeTags ? 'bg-red-100 text-red-800' : 'bg-gray-100'}`}
+                  >
+                    🗑️
+                  </button>
+                </div>
+              </div>
+              <label className="block text-sm font-medium text-gray-700 sr-only">タグ（複数選択）</label>
+              {/* selected-tags inline delete list removed — use delete-mode and tag chips */}
+
+              <div className="mt-1 flex flex-wrap gap-2">
+                {tags.map((tag) => {
+                  const selected = selectedTags.includes(tag.id);
+                  const marked = tagsToDelete.includes(tag.id);
+                  return (
+                    <button
+                      key={tag.id}
+                      type="button"
+                      onClick={() => {
+                        if (deleteModeTags) {
+                          setTagsToDelete(prev => prev.includes(tag.id) ? prev.filter(id => id !== tag.id) : [...prev, tag.id]);
+                        } else {
+                          if (selected) setSelectedTags(prev => prev.filter(id => id !== tag.id));
+                          else setSelectedTags(prev => [...prev, tag.id]);
+                        }
+                      }}
+                      className={`px-3 py-1 border rounded-md focus:outline-none ${deleteModeTags ? (marked ? 'bg-red-100 text-red-800 border-red-200' : 'bg-white') : (selected ? 'bg-indigo-100 text-indigo-800 border-indigo-200' : 'bg-white')}`}
+                    >
+                      {tag.name}
+                    </button>
+                  )
                 })}
               </div>
-
-              <select
-                id="tagIds"
-                multiple
-                className="text-black mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
-                value={selectedTags}
-                onChange={(e) => {
-                  const selected = Array.from(e.target.selectedOptions, option => option.value);
-                  setSelectedTags(selected);
-                }}
-              >
-                {tags.map((tag) => (
-                  <option key={tag.id} value={tag.id}>{tag.name}</option>
-                ))}
-              </select>
+              {deleteModeTags && tagsToDelete.length > 0 && (
+                <div className="mt-2 flex items-center gap-2">
+                  <button
+                    type="button"
+                    className="px-3 py-1 bg-red-600 text-white rounded"
+                    onClick={async () => {
+                      if (!confirm(`選択したタグ(${tagsToDelete.length})を削除しますか？`)) return;
+                      const ids = [...tagsToDelete];
+                      const results = await Promise.all(ids.map(id => fetch(`/api/tags/${id}`, { method: 'DELETE' })));
+                      const okIds: string[] = [];
+                      results.forEach((r, i) => { if (r.ok) okIds.push(ids[i]); });
+                      if (okIds.length > 0) {
+                        setTags(prev => prev.filter(t => !okIds.includes(t.id)));
+                        setSelectedTags(prev => prev.filter(id => !okIds.includes(id)));
+                      }
+                      setTagsToDelete([]);
+                      setDeleteModeTags(false);
+                    }}
+                  >選択したタグを削除 ({tagsToDelete.length})</button>
+                  <button type="button" className="px-3 py-1 bg-gray-200 rounded" onClick={() => { setDeleteModeTags(false); setTagsToDelete([]); }}>キャンセル</button>
+                </div>
+              )}
 
               <div className="flex mt-2 gap-2">
                 <input
