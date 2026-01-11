@@ -17,6 +17,7 @@ export default function EntryListClient() {
   const [navigatingToId, setNavigatingToId] = useState<string | null>(null);
   const [isNavigatingNew, setIsNavigatingNew] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   const router = useRouter();
 
@@ -41,6 +42,17 @@ export default function EntryListClient() {
 
   useEffect(() => {
     fetchEntries();
+  }, []);
+
+  useEffect(() => {
+    const onDocClick = (e: MouseEvent) => {
+      const target = e.target as Node | null;
+      if (!target) return;
+      if ((target as Element).closest('[data-open-menu], [data-menu-button]')) return;
+      setOpenMenuId(null);
+    };
+    document.addEventListener('click', onDocClick);
+    return () => document.removeEventListener('click', onDocClick);
   }, []);
 
   const handleDelete = async (id: string) => {
@@ -111,13 +123,45 @@ export default function EntryListClient() {
                   {new Date(entry.date ?? '').toLocaleDateString()}
                 </p>
               </div>
-              <button
-                onClick={() => handleDelete(entry.id)}
-                disabled={deleteLoadingId === entry.id}
-                className="ml-4 px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
-              >
-                {deleteLoadingId === entry.id ? '削除中...' : '削除'}
-              </button>
+
+              <div className="ml-4 relative">
+                <button
+                  data-menu-button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const newId = openMenuId === entry.id ? null : entry.id;
+                    setTimeout(() => setOpenMenuId(newId), 0);
+                  }}
+                  aria-haspopup="true"
+                  aria-expanded={openMenuId === entry.id}
+                  className="px-2 py-1 bg-gray-100 rounded hover:bg-gray-200"
+                >
+                  …
+                </button>
+
+                {openMenuId === entry.id && (
+                  <div data-open-menu className="absolute right-0 mt-2 w-36 bg-white border rounded shadow-md z-50">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setOpenMenuId(null);
+                        setNavigatingToId(entry.id);
+                        router.push(`/entries/${entry.id}/edit`);
+                      }}
+                      className="w-full text-left px-3 py-2 hover:bg-gray-100"
+                    >
+                      編集
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); handleDelete(entry.id); }}
+                      disabled={deleteLoadingId === entry.id}
+                      className="w-full text-left px-3 py-2 text-red-600 hover:bg-gray-100 disabled:opacity-50"
+                    >
+                      {deleteLoadingId === entry.id ? '削除中...' : '削除'}
+                    </button>
+                  </div>
+                )}
+              </div>
             </li>
           ))}
         </ul>
