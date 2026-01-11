@@ -1,6 +1,7 @@
 import BackToListButton from '@/components/BackToListButton';
 import { getCurrentUser } from "@/lib/getCurrentUser";
 import { prisma } from "@/lib/prisma";
+import DeleteButtonClient from "./DeleteButtonClient";
 import EditButtonClient from "./EditButtonClient";
 
 type Props = {
@@ -31,9 +32,9 @@ export default async function EntryDetail({ params }: Props) {
       <div className="mb-2">
         <BackToListButton>← 一覧に戻る</BackToListButton>
       </div>
-      <div className="ml-4">
-        {/* Client component handles loading state on click */}
+      <div className="ml-4 flex items-center gap-2">
         <EditButtonClient id={entry.id} />
+        <DeleteButtonClient id={entry.id} />
       </div>
 
       <h1 className="text-2xl font-bold mb-2 text-gray-700">
