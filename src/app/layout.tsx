@@ -10,6 +10,7 @@ import {
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import type { ReactNode } from 'react'
+import { Suspense } from 'react'
 import './globals.css'
 
 const geistSans = Geist({
@@ -68,11 +69,16 @@ const RootLayout = ({ children }: Readonly<{ children: ReactNode }>) => {
             <div className="max-w-7xl mx-auto px-4 md:px-6">
               <div className="md:grid md:grid-cols-[14rem_1fr_20rem] md:gap-6">
                 <div className="md:block">
-                  <GlobalMenu />
+                  <Suspense fallback={<div className="h-8 w-full bg-gray-100 rounded" />}
+                  >
+                    <GlobalMenu />
+                  </Suspense>
                 </div>
                 <main className="min-h-[calc(100dvh-4rem)]">
                   <div className="mx-auto max-w-xl">
-                    {children}
+                    <Suspense fallback={<div className="h-8 w-full bg-gray-50 rounded" />}>
+                      {children}
+                    </Suspense>
                   </div>
                 </main>
               </div>

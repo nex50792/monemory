@@ -2,8 +2,8 @@
 
 import ConfirmModal from '@/components/ConfirmModal';
 import GlobalMessage from '@/components/GlobalMessage';
-import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useCallback, useEffect, useState } from 'react';
 
 type Entry = {
   id: string;
@@ -83,11 +83,30 @@ export default function EntryListClient() {
     } finally {
       setLoading(false);
     }
-  }, [setEntries, setError, setLoading]);
+  }, [filters, uiFilters]);
+
+  const searchParamsStr = useSearchParams()?.toString() ?? '';
 
   useEffect(() => {
-    fetchEntries(filters, uiFilters);
-  }, [fetchEntries]);
+    if (!searchParamsStr) return;
+    const sp = new URLSearchParams(searchParamsStr);
+    const q = sp.get('q') ?? '';
+    const startDate = sp.get('startDate') ?? '';
+    const endDate = sp.get('endDate') ?? '';
+    const minAmount = sp.get('minAmount') ?? '';
+    const maxAmount = sp.get('maxAmount') ?? '';
+    const sort = sp.get('sort') ?? 'date_desc';
+    const categoryId = sp.get('categoryId') ?? '';
+    const tagIdsParam = sp.get('tagIds') ?? '';
+    const tagIds = tagIdsParam ? tagIdsParam.split(',').filter(Boolean) : [];
+
+    const parsedFilters: Filters = { q, startDate, endDate, minAmount, maxAmount, sort };
+    const parsedUiFilters: UIFilters = { ...parsedFilters, categoryId, tagIds };
+
+    setFilters(parsedFilters);
+    setUiFilters(parsedUiFilters);
+    fetchEntries(parsedFilters, parsedUiFilters);
+  }, [searchParamsStr, fetchEntries]);
 
   useEffect(() => {
     if (!showFilters) return;
@@ -153,7 +172,8 @@ export default function EntryListClient() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto mt-10 p-6 bg-white rounded-lg shadow-md">
+    <Suspense fallback={<div className="max-w-2xl mx-auto mt-10 p-6"><p className="text-sm text-gray-500">読み込み中...</p></div>}>
+      <div className="max-w-2xl mx-auto mt-10 p-6 bg-white rounded-lg shadow-md">
       <GlobalMessage message={toast ?? error} onClose={() => { setToast(null); setError(null); }} />
       <ConfirmModal open={confirmOpen} message={confirmMessage} onConfirm={async () => { if (onConfirmAction) await onConfirmAction(); setConfirmOpen(false); }} onCancel={() => setConfirmOpen(false)} />
       <div className="flex justify-between items-center mb-4">
@@ -397,6 +417,7 @@ export default function EntryListClient() {
           ))}
         </ul>
       )}
-    </div>
+      </div>
+    </Suspense>
   );
 }
