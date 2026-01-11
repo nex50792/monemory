@@ -3,7 +3,7 @@
 import ConfirmModal from '@/components/ConfirmModal';
 import GlobalMessage from '@/components/GlobalMessage';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useCallback, useEffect, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 
 type Entry = {
   id: string;
@@ -56,8 +56,8 @@ export default function EntryListClient() {
     try {
       const base = '/api/entries';
       const params = new URLSearchParams();
-      const f: Filters = useFilters ?? filters ?? { q: '', startDate: '', endDate: '', minAmount: '', maxAmount: '', sort: 'date_desc' };
-      const u: UIFilters = useUiFilters ?? uiFilters ?? { ...f, categoryId: '', tagIds: [] };
+      const f: Filters = useFilters ?? { q: '', startDate: '', endDate: '', minAmount: '', maxAmount: '', sort: 'date_desc' };
+      const u: UIFilters = useUiFilters ?? { ...f, categoryId: '', tagIds: [] };
       if (f.q) params.set('q', f.q);
       if (f.startDate) params.set('startDate', f.startDate);
       if (f.endDate) params.set('endDate', f.endDate);
@@ -67,13 +67,21 @@ export default function EntryListClient() {
       if (u.categoryId) params.set('categoryId', u.categoryId);
       if (u.tagIds && u.tagIds.length > 0) params.set('tagIds', u.tagIds.join(','));
 
-      const url = params.toString() ? `${base}?${params.toString()}` : base;
+      const qs = params.toString();
+      const url = qs ? `${base}?${qs}` : base;
+
+      const fetchKey = url;
+      if (lastFetchKey.current === fetchKey) {
+        setLoading(false);
+        return;
+      }
 
       const res = await fetch(url);
       if (!res.ok) throw new Error('一覧取得に失敗しました');
       const data = await res.json();
       setEntries(data);
       setError(null);
+      lastFetchKey.current = fetchKey;
     } catch (e: unknown) {
       if (e instanceof Error) {
         setError(e.message);
@@ -83,12 +91,12 @@ export default function EntryListClient() {
     } finally {
       setLoading(false);
     }
-  }, [filters, uiFilters]);
+  }, []);
+  const lastFetchKey = useRef<string>('');
 
   const searchParamsStr = useSearchParams()?.toString() ?? '';
 
   useEffect(() => {
-    if (!searchParamsStr) return;
     const sp = new URLSearchParams(searchParamsStr);
     const q = sp.get('q') ?? '';
     const startDate = sp.get('startDate') ?? '';
@@ -147,6 +155,7 @@ export default function EntryListClient() {
           const data = await res.json();
           throw new Error(data.error || '削除に失敗しました');
         }
+        lastFetchKey.current = '';
         await fetchEntries(filters, uiFilters);
       } catch (e: unknown) {
         if (e instanceof Error) {
