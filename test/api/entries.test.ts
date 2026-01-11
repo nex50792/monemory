@@ -105,4 +105,54 @@ describe('api/entries', () => {
     expect(calledWith.where.amount.lte).toBe(200)
     expect(calledWith.include).toEqual({ category: true, tags: true })
   })
+
+  it('GET applies sort amount_desc with nulls last', async () => {
+    const mockUser = makeMockUser({ id: 'user1' })
+    const getCurrentUserSpy = vi.spyOn(getCurrentUserMod, 'getCurrentUser') as ReturnType<typeof vi.spyOn>
+    getCurrentUserSpy.mockResolvedValue(mockUser)
+
+    const findManyMock = vi.fn().mockResolvedValue([{ id: 'e2', title: 'Sorted', userId: 'user1' }])
+    const prismaInstance: TestPrisma = { entry: { findMany: findManyMock } }
+    mockPrismaModule(prismaInstance)
+
+    const { GET } = await import('@/app/api/entries/route')
+
+    const req = new Request('http://localhost/?sort=amount_desc')
+    const res = await GET(req)
+    const text = await res.text()
+    const json = JSON.parse(text)
+
+    expect(res.status).toBe(200)
+    expect(json).toEqual([{ id: 'e2', title: 'Sorted', userId: 'user1' }])
+
+    expect(findManyMock).toHaveBeenCalled()
+    const calledWith = findManyMock.mock.calls[0][0]
+    expect(calledWith.orderBy).toBeDefined()
+    expect(calledWith.orderBy).toEqual({ amount: { sort: 'desc', nulls: 'last' } })
+  })
+
+  it('GET applies sort amount_asc with nulls first', async () => {
+    const mockUser = makeMockUser({ id: 'user1' })
+    const getCurrentUserSpy = vi.spyOn(getCurrentUserMod, 'getCurrentUser') as ReturnType<typeof vi.spyOn>
+    getCurrentUserSpy.mockResolvedValue(mockUser)
+
+    const findManyMock = vi.fn().mockResolvedValue([{ id: 'e3', title: 'SortedAsc', userId: 'user1' }])
+    const prismaInstance: TestPrisma = { entry: { findMany: findManyMock } }
+    mockPrismaModule(prismaInstance)
+
+    const { GET } = await import('@/app/api/entries/route')
+
+    const req = new Request('http://localhost/?sort=amount_asc')
+    const res = await GET(req)
+    const text = await res.text()
+    const json = JSON.parse(text)
+
+    expect(res.status).toBe(200)
+    expect(json).toEqual([{ id: 'e3', title: 'SortedAsc', userId: 'user1' }])
+
+    expect(findManyMock).toHaveBeenCalled()
+    const calledWith = findManyMock.mock.calls[0][0]
+    expect(calledWith.orderBy).toBeDefined()
+    expect(calledWith.orderBy).toEqual({ amount: { sort: 'asc', nulls: 'first' } })
+  })
 })

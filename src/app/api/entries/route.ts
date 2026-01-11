@@ -20,6 +20,7 @@ export async function GET(req: Request) {
   const endDateRaw = params.get('endDate') ?? undefined;
   const minAmountRaw = params.get('minAmount') ?? undefined;
   const maxAmountRaw = params.get('maxAmount') ?? undefined;
+  const sort = params.get('sort') ?? 'date_desc';
 
   const where: Prisma.EntryWhereInput = { userId: user.id };
 
@@ -60,9 +61,33 @@ export async function GET(req: Request) {
     }
   }
 
+  let orderBy: Prisma.Enumerable<Prisma.EntryOrderByWithRelationInput> = { date: 'desc' };
+  switch (sort) {
+    case 'date_asc':
+      orderBy = { date: { sort: 'asc', nulls: 'first' } };
+      break;
+    case 'date_desc':
+      orderBy = { date: { sort: 'desc', nulls: 'last' } };
+      break;
+    case 'amount_asc':
+      orderBy = { amount: { sort: 'asc', nulls: 'first' } };
+      break;
+    case 'amount_desc':
+      orderBy = { amount: { sort: 'desc', nulls: 'last' } };
+      break;
+    case 'title_asc':
+      orderBy = { title: { sort: 'asc', nulls: 'first' } };
+      break;
+    case 'title_desc':
+      orderBy = { title: { sort: 'desc', nulls: 'last' } };
+      break;
+    default:
+      orderBy = { date: { sort: 'desc', nulls: 'last' } };
+  }
+
   const entries = await prisma.entry.findMany({
     where,
-    orderBy: { date: 'desc' },
+    orderBy,
     include: {
       category: true,
       tags: true,

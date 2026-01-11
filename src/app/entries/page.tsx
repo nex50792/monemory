@@ -18,6 +18,7 @@ export default function EntryListClient() {
     endDate: '',
     minAmount: '',
     maxAmount: '',
+    sort: 'date_desc',
   });
   const [showFilters, setShowFilters] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -34,12 +35,13 @@ export default function EntryListClient() {
     try {
       const base = '/api/entries';
       const params = new URLSearchParams();
-      const f = useFilters ?? { q: '', startDate: '', endDate: '', minAmount: '', maxAmount: '' };
+      const f = useFilters ?? { q: '', startDate: '', endDate: '', minAmount: '', maxAmount: '', sort: 'date_desc' };
       if (f.q) params.set('q', f.q);
       if (f.startDate) params.set('startDate', f.startDate);
       if (f.endDate) params.set('endDate', f.endDate);
       if (f.minAmount) params.set('minAmount', f.minAmount);
       if (f.maxAmount) params.set('maxAmount', f.maxAmount);
+      if (f.sort) params.set('sort', f.sort);
 
       const url = params.toString() ? `${base}?${params.toString()}` : base;
 
@@ -179,9 +181,24 @@ export default function EntryListClient() {
               className="ml-2 px-2 py-1 border rounded w-28"
             />
           </div>
+          <div>
+            <label className="text-sm text-gray-600">並べ替え</label>
+            <select
+              value={filters.sort}
+              onChange={(e) => setFilters({ ...filters, sort: e.target.value })}
+              className="ml-2 px-2 py-1 border rounded"
+            >
+              <option value="date_desc">日付: 新しい順</option>
+              <option value="date_asc">日付: 古い順</option>
+              <option value="amount_desc">金額: 大きい順</option>
+              <option value="amount_asc">金額: 小さい順</option>
+              <option value="title_asc">タイトル: 昇順</option>
+              <option value="title_desc">タイトル: 降順</option>
+            </select>
+          </div>
           <div className="ml-2">
             <button onClick={() => fetchEntries(filters)} className="px-3 py-1 bg-indigo-600 text-white rounded mr-2">適用</button>
-            <button onClick={() => { setFilters({ q: '', startDate: '', endDate: '', minAmount: '', maxAmount: '' }); fetchEntries(); }} className="px-3 py-1 bg-gray-200 rounded">クリア</button>
+            <button onClick={() => { setFilters({ q: '', startDate: '', endDate: '', minAmount: '', maxAmount: '', sort: 'date_desc' }); fetchEntries(); }} className="px-3 py-1 bg-gray-200 rounded">クリア</button>
           </div>
           </div>
         </div>
