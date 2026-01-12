@@ -1,5 +1,6 @@
 "use client"
 
+import { useUser } from '@clerk/nextjs';
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -10,6 +11,10 @@ export default function GlobalMenu() {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
   const menuRef = useRef<HTMLElement | null>(null)
+
+  useEffect(() => {
+    return () => {};
+  }, []);
 
   useEffect(() => {
     if (!open) return
@@ -28,9 +33,7 @@ export default function GlobalMenu() {
   }, [open])
 
   useEffect(() => {
-    function onToggle() {
-      setOpen((s) => !s)
-    }
+    function onToggle() { setOpen((s) => !s) }
 
     window.addEventListener('globalmenu-toggle', onToggle as EventListener)
     return () => window.removeEventListener('globalmenu-toggle', onToggle as EventListener)
@@ -104,22 +107,47 @@ function CategoryTagList({ kind }: { kind: 'category' | 'tag' }) {
   const [items, setItems] = useState<Item[]>([]);
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { isLoaded: userLoaded, isSignedIn } = useUser();
+  const mountedRef = useRef(true);
 
   useEffect(() => {
-    let mounted = true;
+    mountedRef.current = true;
     (async () => {
+      const url = kind === 'category' ? '/api/categories' : '/api/tags';
+      if (!userLoaded) {
+        return;
+      }
+      if (!isSignedIn) {
+        setItems([]);
+        return;
+      }
+
       try {
-        const res = await fetch(kind === 'category' ? '/api/categories' : '/api/tags');
-        if (!res.ok) return;
+        const res = await fetch(url);
+        if (!res.ok) {
+          if (res.status === 401) setItems([]);
+          return;
+        }
         const json = await res.json();
-        if (!mounted) return;
+        if (!mountedRef.current) return;
         setItems(json.slice(0, 20));
       } catch (e) {
         console.error('GlobalMenu category/tag fetch error', e);
       }
     })();
-    return () => { mounted = false };
-  }, [kind]);
+    const onOpen = () => {};
+    const onClose = () => {};
+    window.addEventListener('globalmenu-open', onOpen);
+    window.addEventListener('globalmenu-close', onClose);
+    return () => { mountedRef.current = false; window.removeEventListener('globalmenu-open', onOpen); window.removeEventListener('globalmenu-close', onClose); };
+  }, [kind, userLoaded, isSignedIn]);
+
+  useEffect(() => {
+    if (!userLoaded) return;
+    if (!isSignedIn) {
+      setItems([]);
+    }
+  }, [userLoaded, isSignedIn, kind]);
 
   const currentCategory = searchParams?.get('categoryId') ?? '';
   const currentTagIds = (searchParams?.get('tagIds') ?? '').split(',').filter(Boolean);
