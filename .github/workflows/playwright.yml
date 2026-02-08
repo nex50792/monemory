@@ -1,9 +1,9 @@
 name: Playwright E2E Tests
 on:
   push:
-    branches: [main, master]
+    branches: [main]
   pull_request:
-    branches: [main, master]
+    branches: [main]
   # 4日おきに定期実行（日本時間の朝9時 = UTC 00時）
   schedule:
     - cron: "0 0 */4 * *"
