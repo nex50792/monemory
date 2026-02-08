@@ -11,6 +11,13 @@ setup("ユーザー認証", async ({ page }) => {
   }
 
   await page.goto("/sign-in");
+
+  // ページ内容をデバッグログに出力
+  const pageContent = await page.content();
+  const isSignInPage = pageContent.includes('identifier') || pageContent.includes('Clerk');
+  console.log(`Is sign-in page: ${isSignInPage}`);
+  console.log(`Current URL: ${page.url()}`);
+
   await page.waitForSelector('[name="identifier"]', { timeout: 30000 });
 
   await page.fill('[name="identifier"]', email);
