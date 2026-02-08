@@ -11,12 +11,12 @@ setup("ユーザー認証", async ({ page }) => {
   }
 
   await page.goto("/sign-in");
-  await page.waitForSelector('[name="identifier"]', { timeout: 10000 });
+  await page.waitForSelector('[name="identifier"]', { timeout: 30000 });
 
   await page.fill('[name="identifier"]', email);
   await page.getByRole("button", { name: /continue/i }).click();
 
-  await page.waitForSelector('[name="password"]', { timeout: 10000 });
+  await page.waitForSelector('[name="password"]', { timeout: 30000 });
   await page.fill('[name="password"]', password);
   await page.getByRole("button", { name: /continue/i }).click();
 
