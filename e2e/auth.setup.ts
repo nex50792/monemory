@@ -19,13 +19,13 @@ setup("ユーザー認証", async ({ page }) => {
   await page.goto("/sign-in");
   await page.waitForLoadState("networkidle");
 
-  await page.waitForSelector('[name="identifier"]', { timeout: 30000 });
+  await page.getByPlaceholder("Enter your email address").waitFor({ timeout: 30000 });
 
-  await page.fill('[name="identifier"]', email);
+  await page.getByPlaceholder("Enter your email address").fill(email);
   await page.getByRole("button", { name: /continue/i }).click();
 
-  await page.waitForSelector('[name="password"]', { timeout: 30000 });
-  await page.fill('[name="password"]', password);
+  await page.getByPlaceholder("Enter your password").waitFor({ timeout: 30000 });
+  await page.getByPlaceholder("Enter your password").fill(password);
   await page.getByRole("button", { name: /continue/i }).click();
 
 
