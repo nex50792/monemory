@@ -1,4 +1,5 @@
 import { expect, test as setup } from "@playwright/test";
+import fs from "fs";
 
 const authFile = "playwright/.auth/user.json";
 
@@ -10,13 +11,13 @@ setup("ユーザー認証", async ({ page }) => {
     throw new Error("TEST_USER_EMAIL と TEST_USER_PASSWORD 環境変数が設定されていません");
   }
 
-  await page.goto("/sign-in");
+  // 前回の認証情報を削除（リダイレクトループを防ぐ）
+  if (fs.existsSync(authFile)) {
+    fs.unlinkSync(authFile);
+  }
 
-  // ページ内容をデバッグログに出力
-  const pageContent = await page.content();
-  const isSignInPage = pageContent.includes('identifier') || pageContent.includes('Clerk');
-  console.log(`Is sign-in page: ${isSignInPage}`);
-  console.log(`Current URL: ${page.url()}`);
+  await page.goto("/sign-in");
+  await page.waitForLoadState("networkidle");
 
   await page.waitForSelector('[name="identifier"]', { timeout: 30000 });
 
