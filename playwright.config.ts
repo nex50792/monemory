@@ -16,14 +16,14 @@ const getBaseURL = () => {
   return "http://localhost:3000";
 };
 
-const getAuthHeader = () => {
+const getHttpCredentials = () => {
   const basicAuthUser = process.env.BASIC_AUTH_USER;
   const basicAuthPass = process.env.BASIC_AUTH_PASS;
 
   if (basicAuthUser && basicAuthPass) {
-    const credentials = Buffer.from(`${basicAuthUser}:${basicAuthPass}`).toString("base64");
     return {
-      Authorization: `Basic ${credentials}`,
+      username: basicAuthUser,
+      password: basicAuthPass,
     };
   }
 
@@ -39,7 +39,8 @@ export default defineConfig({
   reporter: "html",
   use: {
     baseURL: getBaseURL(),
-    extraHTTPHeaders: getAuthHeader(),
+    httpCredentials: getHttpCredentials(),
+    userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36",
     trace: "on-first-retry",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
