@@ -1,5 +1,5 @@
-import path from 'path'
-import { defineConfig } from 'vitest/config'
+import path from "path";
+import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   resolve: {
@@ -10,5 +10,8 @@ export default defineConfig({
   test: {
     environment: 'node',
     exclude: ['node_modules', 'dist', 'e2e'],
+    setupFiles: ["./test/setup.ts"],
+    pool: 'forks',
+    fileParallelism: false,
   },
-})
+});
