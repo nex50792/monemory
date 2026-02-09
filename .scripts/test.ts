@@ -8,6 +8,14 @@ import { execSync } from "child_process";
  * 4. Cleanup (stop containers)
  */
 async function runTests(): Promise<void> {
+  // Ensure test environment variables are always set
+  const testEnv = {
+    ...process.env,
+    NODE_ENV: "test",
+    DATABASE_URL: process.env.DATABASE_URL || "postgresql://test:test@localhost:5432/monemory_test",
+    DIRECT_URL: process.env.DIRECT_URL || "postgresql://test:test@localhost:5432/monemory_test",
+  };
+
   try {
     console.log("🟡 Starting test workflow...\n");
 
@@ -15,18 +23,21 @@ async function runTests(): Promise<void> {
     execSync("tsx .scripts/ensure-test-db.ts", {
       stdio: "inherit",
       cwd: process.cwd(),
+      env: testEnv,
     });
 
     console.log("\n📋 Step 2: Pushing schema...");
     execSync("tsx .scripts/db-push-test-run.ts", {
       stdio: "inherit",
       cwd: process.cwd(),
+      env: testEnv,
     });
 
     console.log("\n🧪 Step 3: Running tests...");
-    execSync("NODE_ENV=test vitest --run", {
+    execSync("vitest --run", {
       stdio: "inherit",
       cwd: process.cwd(),
+      env: testEnv,
     });
 
     console.log("\n✅ Tests completed successfully");
