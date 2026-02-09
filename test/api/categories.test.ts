@@ -1,90 +1,93 @@
 import * as getCurrentUserMod from '@/lib/getCurrentUser';
-import type { User } from '@prisma/client';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { PrismaClient } from '@prisma/client';
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fetchHandler } from '../utils/fetchHandler';
 
-type TestCategoryDelegate = Partial<{
-  findMany: ReturnType<typeof vi.fn>
-  findUnique: ReturnType<typeof vi.fn>
-  create: ReturnType<typeof vi.fn>
-}>;
+vi.mock('@/lib/getCurrentUser');
 
-type TestPrisma = Partial<{
-  category: TestCategoryDelegate
-}>;
-
-function mockPrismaModule(prismaInstance: TestPrisma) {
-  vi.doMock('@/lib/prisma', () => ({ prisma: prismaInstance }))
-}
-
-vi.mock('@/lib/getCurrentUser')
-
-const makeMockUser = (overrides: Partial<User> = {}): User => ({
-  id: 'user1',
-  name: null,
-  clerkUserId: 'clerk_user1',
-  email: null,
-  isAdmin: false,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-  deletedAt: null,
-  ...overrides,
-})
+let prisma: PrismaClient;
 
 describe('api/categories', () => {
-  beforeEach(() => {
-    vi.resetAllMocks()
-    vi.resetModules()
-  })
+  beforeEach(async () => {
+    prisma = new PrismaClient();
+    vi.resetAllMocks();
+
+    const user = await prisma.user.create({
+      data: {
+        clerkUserId: 'clerk_user1',
+        isAdmin: false,
+      },
+    });
+
+    vi.spyOn(getCurrentUserMod, 'getCurrentUser').mockResolvedValue(user);
+  });
+
+  afterAll(async () => {
+    await prisma.$disconnect();
+  });
 
   it('GET returns categories for current user', async () => {
-    const mockUser = makeMockUser({ id: 'user1' })
-    vi.spyOn(getCurrentUserMod, 'getCurrentUser').mockResolvedValue(mockUser)
-    const findManyMock = vi.fn().mockResolvedValue([{ id: 'c1', name: 'Food', userId: 'user1' }])
-    const prismaInstance: TestPrisma = { category: { findMany: findManyMock } }
-    mockPrismaModule(prismaInstance)
-    const { GET } = await import('@/app/api/categories/route')
+    const user = await prisma.user.findFirst();
+    if (!user) throw new Error('User not found');
 
-    const { res, json } = await fetchHandler(GET)
-    expect(res.status).toBe(200)
-    expect(json).toEqual([{ id: 'c1', name: 'Food', userId: 'user1' }])
-  })
+    await prisma.category.create({
+      data: {
+        name: 'Food',
+        userId: user.id,
+      },
+    });
+
+    const { GET } = await import('@/app/api/categories/route');
+    const { res, json } = await fetchHandler(GET);
+
+    expect(res.status).toBe(200);
+    expect(Array.isArray(json)).toBe(true);
+    if (!Array.isArray(json)) throw new Error('Expected array');
+    expect(json).toHaveLength(1);
+    expect((json[0] as Record<string, unknown>).name).toBe('Food');
+    expect((json[0] as Record<string, unknown>).userId).toBe(user.id);
+  });
 
   it('POST creates category', async () => {
-    const mockUser = makeMockUser({ id: 'user1' })
-    vi.spyOn(getCurrentUserMod, 'getCurrentUser').mockResolvedValue(mockUser)
+    const user = await prisma.user.findFirst();
+    if (!user) throw new Error('User not found');
 
-    const findUniqueMock = vi.fn().mockResolvedValue(null)
-    const createMock = vi.fn().mockResolvedValue({ id: 'c2', name: 'Travel', userId: 'user1' })
-    const prismaInstance: TestPrisma = { category: { findUnique: findUniqueMock, create: createMock } }
-    mockPrismaModule(prismaInstance)
-    const { POST } = await import('@/app/api/categories/route')
+    const { POST } = await import('@/app/api/categories/route');
+    const { res, json } = await fetchHandler((req) => POST(req), 'POST', { name: 'Travel' });
 
-    const { res, json } = await fetchHandler((req) => POST(req), 'POST', { name: 'Travel' })
-    expect(res.status).toBe(200)
-    expect(json).toEqual({ id: 'c2', name: 'Travel', userId: 'user1' })
-  })
+    expect(res.status).toBe(200);
+    if (!json || typeof json !== 'object' || Array.isArray(json)) throw new Error('Expected object');
+    expect(json.name).toBe('Travel');
+    expect(json.userId).toBe(user.id);
+
+    const created = await prisma.category.findUnique({ where: { id: json.id as string } });
+    expect(created).toBeTruthy();
+    expect(created?.name).toBe('Travel');
+  });
 
   it('POST returns 400 for empty name', async () => {
-    const mockUser = makeMockUser({ id: 'user1' })
-    vi.spyOn(getCurrentUserMod, 'getCurrentUser').mockResolvedValue(mockUser)
-    const { POST } = await import('@/app/api/categories/route')
+    const { POST } = await import('@/app/api/categories/route');
+    const { res } = await fetchHandler((req) => POST(req), 'POST', { name: '' });
 
-    const { res } = await fetchHandler((req) => POST(req), 'POST', { name: '' })
-    expect(res.status).toBe(400)
-  })
+    expect(res.status).toBe(400);
+  });
 
   it('POST returns 409 for duplicate name', async () => {
-    const mockUser = makeMockUser({ id: 'user1' })
-    vi.spyOn(getCurrentUserMod, 'getCurrentUser').mockResolvedValue(mockUser)
+    const user = await prisma.user.findFirst();
+    if (!user) throw new Error('User not found');
 
-    const findUniqueMock = vi.fn().mockResolvedValue({ id: 'existing' })
-    const prismaInstance: TestPrisma = { category: { findUnique: findUniqueMock } }
-    mockPrismaModule(prismaInstance)
-    const { POST } = await import('@/app/api/categories/route')
+    await prisma.category.create({
+      data: {
+        name: 'Food',
+        userId: user.id,
+      },
+    });
 
-    const { res, json } = await fetchHandler((req) => POST(req), 'POST', { name: 'Food' })
-    expect(res.status).toBe(409)
-    expect(json).toHaveProperty('error')
-  })
-})
+    const { POST } = await import('@/app/api/categories/route');
+    const { res, json } = await fetchHandler((req) => POST(req), 'POST', { name: 'Food' });
+
+    expect(res.status).toBe(409);
+    if (!json || typeof json !== 'object' || Array.isArray(json)) throw new Error('Expected object');
+    expect(json).toHaveProperty('error');
+  });
+});

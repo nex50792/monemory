@@ -122,6 +122,7 @@ export async function GET(
     where: { id: entryId, userId: user.id },
     include: {
       tags: true,
+      category: true,
     },
   });
 
