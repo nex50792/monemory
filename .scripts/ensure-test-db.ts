@@ -32,6 +32,7 @@ function isPostgresRunning(
 
 /**
  * Start docker-compose if PostgreSQL is not running
+ * (Skip if docker-compose is not available - e.g., in CI environments)
  */
 async function ensureTestDb(): Promise<void> {
   console.log("🔍 Checking test database availability...");
@@ -55,6 +56,10 @@ async function ensureTestDb(): Promise<void> {
   );
 
   if (result.error) {
+    if (result.error.message.includes("ENOENT") || result.error.message.includes("not found")) {
+      console.log("⚠️  docker-compose not available (assuming PostgreSQL is provided by CI)");
+      return;
+    }
     console.error("❌ Failed to start docker-compose:", result.error.message);
     process.exit(1);
   }

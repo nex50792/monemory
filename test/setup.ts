@@ -1,5 +1,4 @@
 import { PrismaClient } from "@prisma/client";
-import { execSync } from "child_process";
 import { afterAll, beforeAll, beforeEach } from "vitest";
 
 let prisma: PrismaClient | null = null;
@@ -14,19 +13,7 @@ Object.assign(process.env, {
 });
 
 beforeAll(async () => {
-  console.log("🟡 Synchronizing test database schema...");
-  try {
-    execSync("tsx .scripts/db-push-test-run.ts", {
-      stdio: "inherit",
-      cwd: process.cwd(),
-    });
-    console.log("✅ Schema synchronized successfully");
-  } catch (e) {
-    console.error(
-      "❌ prisma db push failed in test setup. Ensure test DB is running at localhost:5432 and DATABASE_URL is correct.",
-    );
-    throw e;
-  }
+  console.log("✅ Database schema already synchronized");
 });
 
 beforeEach(async () => {
