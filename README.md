@@ -24,6 +24,14 @@ ngrok http 3000
    例: https://abcd-1234.ngrok-free.app/api/public/webhook
    Enable Endpointにして、Subscribed eventsにuser.created, user.deleted, user.updatedを入れる
 
+### 統合テスト (Vitest + PostgreSQL)
+
+以下コマンドでテストDB（PostgreSQL）の起動とテスト実行が行われます
+
+```bash
+npm test
+```
+
 ### E2Eテスト (Playwright)
 
 ```bash
