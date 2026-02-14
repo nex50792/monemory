@@ -32,6 +32,10 @@ const getHttpCredentials = () => {
 
 export default defineConfig({
   testDir: "./e2e",
+  timeout: 60000,
+  expect: {
+    timeout: 15000,
+  },
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: 1,
@@ -39,6 +43,8 @@ export default defineConfig({
   use: {
     baseURL: getBaseURL(),
     httpCredentials: getHttpCredentials(),
+    actionTimeout: 15000,
+    navigationTimeout: 30000,
     userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36",
     trace: "on-first-retry",
     screenshot: "only-on-failure",
