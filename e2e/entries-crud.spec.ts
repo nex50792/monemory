@@ -148,7 +148,7 @@ test.describe("エントリーのCRUD操作", () => {
 
   test("エントリーを並べ替えできる", async ({ page }) => {
     await page.locator('button[title="フィルター"]').click();
-    const sortLabel = page.locator('label:has-text("並び替え")');
+    const sortLabel = page.locator('label:has-text("並べ替え")');
     await expect(sortLabel).toBeVisible();
   });
 });
