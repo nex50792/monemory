@@ -134,7 +134,7 @@ export function CategoryPieChart({ data }: CategoryPieChartProps) {
             endAngle={-270}
             labelLine={false}
             label={renderCustomLabel}
-            outerRadius={220}
+            outerRadius="100%"
             fill="#8884d8"
             dataKey="value"
             nameKey="name"
