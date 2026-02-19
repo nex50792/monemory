@@ -100,6 +100,14 @@ export default function GlobalMenu() {
                   ダッシュボード
                 </Link>
               </li>
+              <li>
+                <Link
+                  href="/stats/monthly"
+                  className={`block px-3 py-2 rounded ${isActive("/stats/monthly") ? "bg-indigo-600 text-white" : "text-gray-700 hover:bg-gray-100"}`}
+                >
+                  月ごとの合計金額
+                </Link>
+              </li>
             </ul>
 
             <div className="mt-6">
