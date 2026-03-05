@@ -1,5 +1,6 @@
  
 import * as getCurrentUserMod from '@/lib/getCurrentUser';
+import { UnauthorizedError } from '@/lib/errors';
 import type { User } from '@prisma/client';
 import { PrismaClient } from '@prisma/client';
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -51,9 +52,7 @@ describe('api/stats', () => {
   });
 
   it('returns 401 when not authenticated', async () => {
-    vi.spyOn(getCurrentUserMod, 'getCurrentUser').mockRejectedValue(
-      new Error('ログインユーザーが存在しません')
-    );
+    vi.spyOn(getCurrentUserMod, 'getCurrentUser').mockRejectedValue(new UnauthorizedError());
     const { GET } = await import('@/app/api/stats/route');
     const { res } = await fetchHandler(GET);
     expect(res.status).toBe(401);

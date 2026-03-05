@@ -1,3 +1,4 @@
+import { UnauthorizedError } from '@/lib/errors';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@clerk/nextjs/server';
 
@@ -5,7 +6,7 @@ export async function getCurrentUser() {
   const authRes = await auth();
 
   if (!authRes.userId) {
-    throw new Error('ログインユーザーが存在しません');
+    throw new UnauthorizedError();
   }
 
   const user = await prisma.user.findUnique({
@@ -15,7 +16,7 @@ export async function getCurrentUser() {
   });
 
   if (!user) {
-    throw new Error('該当するユーザーが見つかりません');
+    throw new UnauthorizedError();
   }
 
   return user;

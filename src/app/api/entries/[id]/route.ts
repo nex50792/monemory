@@ -1,3 +1,4 @@
+import { resolveCategoryId, resolveTagIds } from '@/lib/entryHelpers';
 import { getCurrentUser } from '@/lib/getCurrentUser';
 import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
@@ -12,9 +13,6 @@ export async function PUT(
 
   const entry = await prisma.entry.findUnique({
     where: { id: entryId, userId: user.id },
-    include: {
-      tags: true,
-    },
   });
 
   if (!entry) {
@@ -30,19 +28,7 @@ export async function PUT(
     ? null
     : data.amount;
 
-  let categoryId: string | null = null;
-  const existingCategoryId = data.categoryId as string | undefined;
-  const newCategoryName = data.newCategory as string | undefined;
-  if (newCategoryName && newCategoryName.trim() !== '') {
-    const category = await prisma.category.upsert({
-      where: { name_userId: { name: newCategoryName, userId: user.id } },
-      update: {},
-      create: { name: newCategoryName, userId: user.id },
-    });
-    categoryId = category.id;
-  } else if (existingCategoryId) {
-    categoryId = existingCategoryId;
-  }
+  const categoryId = await resolveCategoryId(user.id, data.categoryId, data.newCategory);
 
   const rawSelectedTagIds = data.tags as string | string[] | undefined;
   const selectedTagIds = typeof rawSelectedTagIds === 'string'
@@ -57,18 +43,7 @@ export async function PUT(
     .map((t: string) => t.trim())
     .filter(Boolean) as string[];
 
-  const createdTags = await Promise.all(
-    newTagNames.map(async (name: string) => {
-      const existing = await prisma.tag.findFirst({ where: { name, userId: user.id } });
-      if (existing) return existing;
-      return prisma.tag.create({ data: { name, userId: user.id } });
-    })
-  );
-
-  const allTagIds = [
-    ...selectedTagIds,
-    ...createdTags.map((t) => t.id),
-  ];
+  const allTagIds = await resolveTagIds(user.id, selectedTagIds, newTagNames);
 
   const updated = await prisma.entry.update({
     where: { id: entryId },
@@ -97,7 +72,7 @@ export async function DELETE(
     where: { id: entryId, userId: user.id },
   });
 
-  if (!entry || entry.userId !== user.id) {
+  if (!entry) {
     return NextResponse.json(
       { error: '記録が存在しないか、権限がありません。' },
       { status: 404 }

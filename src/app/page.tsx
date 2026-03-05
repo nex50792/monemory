@@ -131,7 +131,6 @@ export default function Home() {
         }}
         className="space-y-4"
       >
-        <GlobalMessage message={toast} onClose={() => setToast(null)} />
         <ConfirmModal
           open={confirmOpen}
           message={confirmMessage}

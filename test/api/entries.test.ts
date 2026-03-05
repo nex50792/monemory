@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import * as getCurrentUserMod from '@/lib/getCurrentUser';
+import { UnauthorizedError } from '@/lib/errors';
 import type { User } from '@prisma/client';
 import { PrismaClient } from '@prisma/client';
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -71,7 +72,7 @@ describe('api/entries', () => {
   })
 
   it('returns 401 when not authenticated', async () => {
-    vi.spyOn(getCurrentUserMod, 'getCurrentUser').mockResolvedValue(null as any);
+    vi.spyOn(getCurrentUserMod, 'getCurrentUser').mockRejectedValue(new UnauthorizedError());
     const { GET } = await import('@/app/api/entries/route');
     const { res } = await fetchHandler(GET);
     expect(res.status).toBe(401);

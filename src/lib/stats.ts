@@ -66,27 +66,6 @@ export function calculateCategoryStats(
     .sort((a, b) => b.total - a.total);
 }
 
-export function filterByDateRange(
-  entries: Entry[],
-  startDate?: Date,
-  endDate?: Date
-): Entry[] {
-  return entries.filter((entry) => {
-    if (!entry.date) return false;
-
-    const entryDate = new Date(entry.date);
-
-    if (startDate && entryDate < startDate) return false;
-    if (endDate) {
-      const endOfDay = new Date(endDate);
-      endOfDay.setHours(23, 59, 59, 999);
-      if (entryDate > endOfDay) return false;
-    }
-
-    return true;
-  });
-}
-
 export function getDefaultDateRange(): { startDate: Date; endDate: Date } {
   const endDate = new Date();
   const startDate = new Date();

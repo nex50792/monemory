@@ -1,3 +1,4 @@
+import { UnauthorizedError } from '@/lib/errors';
 import { getCurrentUser } from '@/lib/getCurrentUser';
 import { prisma } from '@/lib/prisma';
 import {
@@ -7,15 +8,9 @@ import {
 } from '@/lib/stats';
 import { NextResponse } from 'next/server';
 
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
-
 export async function GET(req: Request) {
   try {
     const user = await getCurrentUser();
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
 
     const url = new URL(req.url);
     const params = url.searchParams;
@@ -47,12 +42,15 @@ export async function GET(req: Request) {
       endDate = endDate ?? defaultRange.endDate;
     }
 
+    const endOfDay = new Date(endDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
     const entries = await prisma.entry.findMany({
       where: {
         userId: user.id,
         date: {
           gte: startDate,
-          lte: new Date(endDate.getTime() + MS_PER_DAY),
+          lte: endOfDay,
         },
       },
       include: {
@@ -68,12 +66,10 @@ export async function GET(req: Request) {
     const stats = calculateMonthlyStats(entries);
     return NextResponse.json({ monthly: stats });
   } catch (error) {
-    console.error('Stats API error:', error);
-
-    if (error instanceof Error && error.message.includes('ログイン')) {
+    if (error instanceof UnauthorizedError) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
+    console.error('Stats API error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
