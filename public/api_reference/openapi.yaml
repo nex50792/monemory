@@ -1,0 +1,582 @@
+openapi: 3.0.3
+info:
+  title: MONEMORY API
+  description: |
+    Money + Memory — お金と思い出を記録する家計簿アプリのAPI仕様書。
+    すべてのエンドポイント（Webhook除く）はClerk認証が必要です。
+  version: 1.0.0
+
+servers:
+  - url: /api
+    description: アプリケーションサーバー
+
+tags:
+  - name: Entries
+    description: 支出記録の管理
+  - name: Categories
+    description: カテゴリの管理
+  - name: Tags
+    description: タグの管理
+  - name: Stats
+    description: 統計データの取得
+  - name: Webhook
+    description: Clerk Webhook（公開エンドポイント）
+
+paths:
+  /entries:
+    get:
+      tags: [Entries]
+      summary: 記録一覧の取得
+      description: フィルター・ソート付きで記録一覧を取得します。
+      parameters:
+        - name: q
+          in: query
+          description: タイトルの部分一致検索
+          schema:
+            type: string
+        - name: startDate
+          in: query
+          description: 開始日 (ISO 8601)
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          description: 終了日 (ISO 8601)
+          schema:
+            type: string
+            format: date
+        - name: minAmount
+          in: query
+          description: 最小金額
+          schema:
+            type: number
+        - name: maxAmount
+          in: query
+          description: 最大金額
+          schema:
+            type: number
+        - name: categoryId
+          in: query
+          description: カテゴリIDでフィルター
+          schema:
+            type: string
+        - name: tagIds
+          in: query
+          description: タグIDでフィルター（カンマ区切り）
+          schema:
+            type: string
+        - name: sort
+          in: query
+          description: ソート順
+          schema:
+            type: string
+            enum: [date_asc, date_desc, amount_asc, amount_desc, title_asc, title_desc]
+            default: date_desc
+      responses:
+        "200":
+          description: 記録一覧
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EntryWithRelations"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /entries/{id}:
+    get:
+      tags: [Entries]
+      summary: 記録の詳細取得
+      parameters:
+        - $ref: "#/components/parameters/EntryId"
+      responses:
+        "200":
+          description: 記録の詳細
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EntryWithRelations"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    put:
+      tags: [Entries]
+      summary: 記録の更新
+      parameters:
+        - $ref: "#/components/parameters/EntryId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EntryUpdateInput"
+      responses:
+        "200":
+          description: 更新された記録
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EntryWithRelations"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    delete:
+      tags: [Entries]
+      summary: 記録の削除
+      parameters:
+        - $ref: "#/components/parameters/EntryId"
+      responses:
+        "200":
+          description: 削除成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /categories:
+    get:
+      tags: [Categories]
+      summary: カテゴリ一覧の取得
+      responses:
+        "200":
+          description: カテゴリ一覧（名前順）
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Category"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    post:
+      tags: [Categories]
+      summary: カテゴリの作成
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NameInput"
+      responses:
+        "200":
+          description: 作成されたカテゴリ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Category"
+        "400":
+          description: カテゴリ名が空
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          description: 同名のカテゴリが既に存在
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /categories/{id}:
+    delete:
+      tags: [Categories]
+      summary: カテゴリの削除
+      description: 記録に使用されていないカテゴリのみ削除可能です。
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "200":
+          description: 削除成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "400":
+          description: カテゴリが記録に使用中
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /tags:
+    get:
+      tags: [Tags]
+      summary: タグ一覧の取得
+      responses:
+        "200":
+          description: タグ一覧（名前順）
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Tag"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    post:
+      tags: [Tags]
+      summary: タグの作成
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NameInput"
+      responses:
+        "200":
+          description: 作成されたタグ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tag"
+        "400":
+          description: タグ名が空
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          description: 同名のタグが既に存在
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /tags/{id}:
+    delete:
+      tags: [Tags]
+      summary: タグの削除
+      description: 記録に使用されていないタグのみ削除可能です。
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "200":
+          description: 削除成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "400":
+          description: タグが記録に使用中
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /stats:
+    get:
+      tags: [Stats]
+      summary: 統計データの取得
+      parameters:
+        - name: type
+          in: query
+          required: true
+          description: 統計の種類
+          schema:
+            type: string
+            enum: [monthly, category]
+        - name: startDate
+          in: query
+          description: 開始日 (ISO 8601)
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          description: 終了日 (ISO 8601)
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: 統計データ
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/MonthlyStatsResponse"
+                  - $ref: "#/components/schemas/CategoryStatsResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /public/webhook:
+    post:
+      tags: [Webhook]
+      summary: Clerk Webhookイベントの受信
+      description: |
+        Clerkからのユーザーイベントを処理します。Svixによる署名検証が必要です。
+        認証不要の公開エンドポイントです。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Clerk Webhookイベントペイロード
+      responses:
+        "200":
+          description: 処理成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        "400":
+          description: 署名検証失敗またはWebhookシークレット未設定
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      security: []
+
+components:
+  schemas:
+    Entry:
+      type: object
+      properties:
+        id:
+          type: string
+          description: CUID
+        userId:
+          type: string
+        categoryId:
+          type: string
+          nullable: true
+        title:
+          type: string
+        amount:
+          type: number
+          description: 金額（小数点以下2桁）
+        date:
+          type: string
+          format: date-time
+          nullable: true
+        memo:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Category:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        userId:
+          type: string
+          nullable: true
+
+    Tag:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        userId:
+          type: string
+          nullable: true
+
+    EntryWithRelations:
+      allOf:
+        - $ref: "#/components/schemas/Entry"
+        - type: object
+          properties:
+            category:
+              $ref: "#/components/schemas/Category"
+              nullable: true
+            tags:
+              type: array
+              items:
+                $ref: "#/components/schemas/Tag"
+
+    EntryUpdateInput:
+      type: object
+      properties:
+        title:
+          type: string
+        amount:
+          type: number
+        date:
+          type: string
+          format: date
+        memo:
+          type: string
+        categoryId:
+          type: string
+          description: 既存カテゴリID
+        newCategory:
+          type: string
+          description: 新規カテゴリ名（categoryIdより優先）
+        tags:
+          type: array
+          items:
+            type: string
+          description: 既存タグIDの配列
+        newTags:
+          type: array
+          items:
+            type: string
+          description: 新規タグ名の配列
+
+    NameInput:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          description: カテゴリ名またはタグ名
+
+    MonthlyStatsResponse:
+      type: object
+      properties:
+        monthly:
+          type: array
+          items:
+            type: object
+            properties:
+              month:
+                type: string
+                example: "2026-03"
+              total:
+                type: number
+                example: 45000
+
+    CategoryStatsResponse:
+      type: object
+      properties:
+        byCategory:
+          type: array
+          items:
+            type: object
+            properties:
+              category:
+                type: string
+                example: 食費
+              total:
+                type: number
+                example: 30000
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: エラーメッセージ
+
+  parameters:
+    EntryId:
+      name: id
+      in: path
+      required: true
+      description: 記録ID
+      schema:
+        type: string
+
+    ResourceId:
+      name: id
+      in: path
+      required: true
+      description: リソースID
+      schema:
+        type: string
+
+  responses:
+    Unauthorized:
+      description: 認証エラー
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error: Unauthorized
+
+    NotFound:
+      description: リソースが見つからない
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error: Not found
+
+    InternalServerError:
+      description: サーバーエラー
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error: Internal Server Error
+
+  securitySchemes:
+    clerkAuth:
+      type: http
+      scheme: bearer
+      description: Clerk セッショントークン
+
+security:
+  - clerkAuth: []
