@@ -1,28 +1,37 @@
+import { UnauthorizedError } from '@/lib/errors';
 import { getCurrentUser } from '@/lib/getCurrentUser';
 import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 
 export async function DELETE(
-  req: Request,
+  _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const user = await getCurrentUser();
-  const id = (await params).id;
+  try {
+    const user = await getCurrentUser();
+    const id = (await params).id;
 
-  const tag = await prisma.tag.findUnique({
-    where: { id },
-    include: { entries: true },
-  });
+    const tag = await prisma.tag.findUnique({
+      where: { id },
+      include: { entries: true },
+    });
 
-  if (!tag || tag.userId !== user.id) {
-    return NextResponse.json({ error: 'タグが存在しないか、権限がありません。' }, { status: 404 });
+    if (!tag || tag.userId !== user.id) {
+      return NextResponse.json({ error: 'タグが存在しないか、権限がありません。' }, { status: 404 });
+    }
+
+    if (tag.entries.length > 0) {
+      return NextResponse.json({ error: 'このタグは記録に使用されているため削除できません。' }, { status: 400 });
+    }
+
+    await prisma.tag.delete({ where: { id } });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    if (error instanceof UnauthorizedError) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    console.error('Tag DELETE error:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
-
-  if (tag.entries.length > 0) {
-    return NextResponse.json({ error: 'このタグは記録に使用されているため削除できません。' }, { status: 400 });
-  }
-
-  await prisma.tag.delete({ where: { id } });
-
-  return NextResponse.json({ success: true });
 }
