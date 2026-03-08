@@ -337,9 +337,27 @@ paths:
           content:
             application/json:
               schema:
-                oneOf:
-                  - $ref: "#/components/schemas/MonthlyStatsResponse"
-                  - $ref: "#/components/schemas/CategoryStatsResponse"
+                type: object
+                description: type=monthly の場合は monthly、type=category の場合は byCategory を返す
+                properties:
+                  monthly:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        month:
+                          type: string
+                        total:
+                          type: number
+                  byCategory:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        category:
+                          type: string
+                        total:
+                          type: number
         "401":
           $ref: "#/components/responses/Unauthorized"
         "500":
@@ -394,8 +412,8 @@ components:
         title:
           type: string
         amount:
-          type: number
-          description: 金額（小数点以下2桁）
+          type: string
+          description: 金額（Decimal型、文字列としてシリアライズ）
         date:
           type: string
           format: date-time
