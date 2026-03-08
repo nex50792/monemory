@@ -1,4 +1,5 @@
 import { DELETE, GET, PUT } from '@/app/api/entries/[id]/route';
+import { UnauthorizedError } from '@/lib/errors';
 import * as getCurrentUserMod from '@/lib/getCurrentUser';
 import { PrismaClient } from '@prisma/client';
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -168,5 +169,32 @@ describe('api/entries/[id]', () => {
 
     const deleted = await prisma.entry.findUnique({ where: { id: entry.id } });
     expect(deleted).toBeNull();
+  });
+
+  it('GET returns 401 when not authenticated', async () => {
+    vi.spyOn(getCurrentUserMod, 'getCurrentUser').mockRejectedValue(new UnauthorizedError());
+    const res = await GET(new Request('http://localhost/'), {
+      params: Promise.resolve({ id: 'any' }),
+    });
+    expect(res.status).toBe(401);
+  });
+
+  it('PUT returns 401 when not authenticated', async () => {
+    vi.spyOn(getCurrentUserMod, 'getCurrentUser').mockRejectedValue(new UnauthorizedError());
+    const req = new Request('http://localhost/', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: 'Test' }),
+    });
+    const res = await PUT(req, { params: Promise.resolve({ id: 'any' }) });
+    expect(res.status).toBe(401);
+  });
+
+  it('DELETE returns 401 when not authenticated', async () => {
+    vi.spyOn(getCurrentUserMod, 'getCurrentUser').mockRejectedValue(new UnauthorizedError());
+    const res = await DELETE(new Request('http://localhost/'), {
+      params: Promise.resolve({ id: 'any' }),
+    });
+    expect(res.status).toBe(401);
   });
 });

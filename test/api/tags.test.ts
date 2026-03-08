@@ -1,4 +1,5 @@
 import * as getCurrentUserMod from '@/lib/getCurrentUser';
+import { UnauthorizedError } from '@/lib/errors';
 import { PrismaClient } from '@prisma/client';
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fetchHandler } from '../utils/fetchHandler';
@@ -89,5 +90,19 @@ describe('api/tags', () => {
     expect(res.status).toBe(409);
     if (!json || typeof json !== 'object' || Array.isArray(json)) throw new Error('Expected object');
     expect(json).toHaveProperty('error');
+  });
+
+  it('GET returns 401 when not authenticated', async () => {
+    vi.spyOn(getCurrentUserMod, 'getCurrentUser').mockRejectedValue(new UnauthorizedError());
+    const { GET } = await import('@/app/api/tags/route');
+    const { res } = await fetchHandler(GET);
+    expect(res.status).toBe(401);
+  });
+
+  it('POST returns 401 when not authenticated', async () => {
+    vi.spyOn(getCurrentUserMod, 'getCurrentUser').mockRejectedValue(new UnauthorizedError());
+    const { POST } = await import('@/app/api/tags/route');
+    const { res } = await fetchHandler((req) => POST(req), 'POST', { name: 'Test' });
+    expect(res.status).toBe(401);
   });
 });
