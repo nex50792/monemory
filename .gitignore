@@ -50,3 +50,6 @@ next-env.d.ts
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+
+# local backups (作業前バックアップ、コミット対象外)
+/.backup-*/
