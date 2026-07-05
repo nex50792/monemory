@@ -1,3 +1,4 @@
+import { syncEntryEmbedding } from '@/lib/entryEmbedding';
 import { resolveCategoryId, resolveTagIds } from '@/lib/entryHelpers';
 import { UnauthorizedError } from '@/lib/errors';
 import { getCurrentUser } from '@/lib/getCurrentUser';
@@ -58,6 +59,8 @@ export async function PUT(
       },
       include: { tags: true, category: true },
     });
+
+    await syncEntryEmbedding(updated.id);
 
     return NextResponse.json(updated);
   } catch (error) {

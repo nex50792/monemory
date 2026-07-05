@@ -1,5 +1,6 @@
 "use server";
 
+import { syncEntryEmbedding } from '@/lib/entryEmbedding';
 import { resolveCategoryId, resolveTagIds } from '@/lib/entryHelpers';
 import { getCurrentUser } from '@/lib/getCurrentUser';
 import { prisma } from '@/lib/prisma';
@@ -52,6 +53,8 @@ export async function createEntry(formData: FormData) {
         },
       },
     });
+
+    await syncEntryEmbedding(newEntry.id);
 
     revalidatePath('/entries');
     revalidatePath(`/entries/${newEntry.id}`);
