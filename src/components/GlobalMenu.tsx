@@ -108,6 +108,14 @@ export default function GlobalMenu() {
                   月ごとの合計金額
                 </Link>
               </li>
+              <li>
+                <Link
+                  href="/chat"
+                  className={`block px-3 py-2 rounded ${isActive("/chat") ? "bg-indigo-600 text-white" : "text-gray-700 hover:bg-gray-100"}`}
+                >
+                  AIチャット
+                </Link>
+              </li>
             </ul>
 
             <div className="mt-6">
